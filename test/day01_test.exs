@@ -1,7 +1,7 @@
 defmodule AdventOfCode.Day1Test do
   use ExUnit.Case
 
-  import AdventOfCode.Day1
+  import AdventOfCode.Day01
   import AdventUtils
 
   test "part1" do
