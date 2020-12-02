@@ -1,4 +1,4 @@
-defmodule AdventOfCode.Day1Test do
+defmodule AdventOfCode.Day01Test do
   use ExUnit.Case
 
   import AdventOfCode.Day01
