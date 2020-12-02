@@ -6,7 +6,8 @@ defmodule AdventOfCode.Day01 do
   end
 
   def part1(numbers) do
-    pairs_to(numbers, 2020) |> (fn x -> x * (2020 - x) end).()
+    pairs_to(numbers, 2020)
+    |> (fn x -> x * (2020 - x) end).()
   end
 
   def part2(numbers) do
