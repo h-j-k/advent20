@@ -1,8 +1,8 @@
 defmodule AdventUtils do
-  def to_list(path) do
-    {:ok, input} = File.read(path)
-    input
-    |> String.split("\r\n", trim: true)
+  def to_list(path, index \\ false) do
+    stream = File.stream!(path)
+             |> Stream.map(&String.trim/1)
+    Enum.to_list(if index, do: Stream.with_index(stream), else: stream)
   end
 
   def to_number_list(path) do
