@@ -5,10 +5,10 @@ defmodule AdventOfCode.Day01Test do
   import AdventUtils
 
   test "part1" do
-    assert part1(to_number_list("./inputs/day01.txt")) == 357504
+    assert part1(to_list("./inputs/day01.txt", [number: true])) == 357504
   end
 
   test "part2" do
-    assert part2(to_number_list("./inputs/day01.txt")) == 12747392
+    assert part2(to_list("./inputs/day01.txt", [number: true])) == 12747392
   end
 end
