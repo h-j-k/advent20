@@ -1,27 +1,30 @@
 defmodule AdventOfCode.Day02 do
   @moduledoc "Day 02"
 
-  def part1(list) do
+  defp is_valid(list, check) do
     list
     |> Enum.count(
          fn line ->
-           [_, min, max, char, password] = Regex.run(~r/^(\d+)\-(\d+) (.): (.+)$/, line)
-           {:ok, regex} = Regex.compile("#{char}")
-           (
-             Regex.scan(regex, password)
-             |> length) in String.to_integer(min)..String.to_integer(max)
+           {_, p1, p2, char, password} = List.to_tuple(Regex.run(~r/^(\d+)\-(\d+) (.): (.+)$/, line))
+           check.({String.to_integer(p1), String.to_integer(p2), char, password})
          end
        )
   end
 
+  def part1(list) do
+    check = fn {min, max, char, password} ->
+      (password
+       |> String.graphemes
+       |> Enum.frequencies)[char] in min..max
+    end
+    is_valid(list, check)
+  end
+
   def part2(list) do
-    list
-    |> Enum.count(
-         fn line ->
-           [_, p1, p2, char, password] = Regex.run(~r/^(\d+)\-(\d+) (.): (.+)$/, line)
-           is_valid = &(String.at(password, String.to_integer(&1) - 1) == char)
-           is_valid.(p1) != is_valid.(p2)
-         end
-       )
+    check = fn {p1, p2, char, password} ->
+      is_char_at = &(String.at(password, &1 - 1) == char)
+      is_char_at.(p1) != is_char_at.(p2)
+    end
+    is_valid(list, check)
   end
 end
