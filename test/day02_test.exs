@@ -4,11 +4,13 @@ defmodule AdventOfCode.Day02Test do
   import AdventOfCode.Day02
   import AdventUtils
 
+  @inputs to_list("./inputs/day02.txt")
+
   test "part1" do
-    assert part1(to_list("./inputs/day02.txt")) == 556
+    assert part1(@inputs) == 556
   end
 
   test "part2" do
-    assert part2(to_list("./inputs/day02.txt")) == 605
+    assert part2(@inputs) == 605
   end
 end
