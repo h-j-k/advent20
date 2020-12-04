@@ -4,7 +4,7 @@ defmodule AdventOfCode.Day01Test do
   import AdventOfCode.Day01
   import AdventUtils
 
-  @input to_list("./inputs/day01.txt", [number: true])
+  @input to_list("./inputs/day01.txt", [to_integer: true])
 
   test "part1" do
     assert part1(@input) == 357504

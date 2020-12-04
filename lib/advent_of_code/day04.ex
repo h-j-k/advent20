@@ -2,10 +2,7 @@ defmodule AdventOfCode.Day04 do
   @moduledoc "Day 04"
 
   defp check(list, regex) do
-    list
-    |> Enum.chunk_by(&(&1 == ""))
-    |> Enum.map(&(Enum.join(&1, " ")))
-    |> Enum.count(&(Enum.count(Regex.scan(regex, &1)) == 7))
+    Enum.count(list, &(Enum.count(Regex.scan(regex, &1)) == 7))
   end
 
   def part1(list) do

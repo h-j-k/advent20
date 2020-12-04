@@ -4,7 +4,7 @@ defmodule AdventOfCode.Day03Test do
   import AdventOfCode.Day03
   import AdventUtils
 
-  @input to_list("./inputs/day03.txt", [index: true])
+  @input to_list("./inputs/day03.txt", [indexed: true])
 
   test "part1" do
     assert part1(@input) == 200

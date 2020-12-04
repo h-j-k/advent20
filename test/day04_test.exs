@@ -4,7 +4,7 @@ defmodule AdventOfCode.Day04Test do
   import AdventOfCode.Day04
   import AdventUtils
 
-  @input to_list("./inputs/day04.txt")
+  @input to_list("./inputs/day04.txt", [line_delimited: true, flattened: true])
 
   test "part1" do
     assert part1(@input) == 256
