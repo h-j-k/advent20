@@ -2,8 +2,9 @@ defmodule AdventOfCode.Day05Test do
   use ExUnit.Case
 
   import AdventOfCode.Day05
+  import AdventUtils
 
-  @input AdventUtils.to_list("./inputs/day05.txt")
+  @input test_file()
 
   test "part1", do: assert part1(@input) == 901
 

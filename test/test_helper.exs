@@ -1,5 +1,10 @@
 defmodule AdventUtils do
-  def to_list(path, opts \\ []) do
+
+  defmacro test_file(opts \\ []), do: to_list(to_name(Atom.to_string(__CALLER__.module)), opts)
+
+  defp to_name(module), do: Regex.replace(~r/^.*Day(\d\d)Test/, module, "./inputs/day\\1.txt")
+
+  defp to_list(path, opts) do
     empty_line = &(&1 == "")
     flatten = &(Enum.join(&1, " "))
     line_delimited = fn s -> Stream.reject(Stream.chunk_by(s, empty_line), &(Enum.all?(&1, empty_line))) end
