@@ -1,7 +1,6 @@
 /.idea/
 *.iml
 
-/inputs/
 /_build
 /cover
 /deps
