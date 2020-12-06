@@ -7,5 +7,5 @@ defmodule AdventOfCode.Day06Test do
 
   test "part1", do: assert part1(@input) == 6947
 
-  test "part2", do: assert part2(@input) == 11
+  test "part2", do: assert part2(@input) == 3398
 end
