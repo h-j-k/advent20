@@ -4,9 +4,9 @@ defmodule AdventOfCode.Day02 do
   import String
 
   defp is_valid(list, check) do
-    to_tuple = &(Enum.drop(Regex.run(~r/^(\d+)\-(\d+) (.): (.+)$/, &1), 1))
-    to_props = fn [p1, p2, char, password] -> check.(to_integer(p1), to_integer(p2), char, password) end
-    Enum.count(list, &(to_props.(to_tuple.(&1))))
+    to_values = &(Enum.drop(Regex.run(~r/^(\d+)\-(\d+) (.): (.+)$/, &1), 1))
+    checker = fn [p1, p2, char, password] -> check.(to_integer(p1), to_integer(p2), char, password) end
+    Enum.count(list, &(checker.(to_values.(&1))))
   end
 
   def part1(list), do: is_valid(list, &(AdventOfCode.count_chars(&4)[&3] in &1..&2))
