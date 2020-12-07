@@ -1,61 +1,47 @@
 defmodule AdventOfCode.Day07 do
   @moduledoc "Day 07"
 
-  defmodule Bag, do: defstruct color: :a_color
-
-  defmodule BagContent, do: defstruct bag: Bag, contains: %{}
+  @target String.to_atom("shiny gold")
 
   defp bag_and_count(value) do
-    [_, count, color] = Regex.run(~r/^(\d+) (.*) bags?$/, value)
-    {%Bag{color: String.to_atom(color)}, String.to_integer(count)}
+    [_, count, bag] = Regex.run(~r/^(\d+) (.*) bags?$/, value)
+    {String.to_atom(bag), String.to_integer(count)}
   end
 
   defp parse(value) do
-    [_, color, contains] = Regex.run(~r/^(.*) bags contain (.*).$/, value)
-    %BagContent{
-      bag: %Bag{
-        color: String.to_atom(color)
-      },
-      contains: case contains do
+    [_, bag, contains] = Regex.run(~r/^(.*) bags contain (.*).$/, value)
+    {
+      String.to_atom(bag),
+      case contains do
         "no other bags" -> %{}
         others -> Map.new(String.split(others, ", "), &bag_and_count/1)
       end
     }
   end
 
-  defp parse_rules(list), do: Map.new(Enum.map(list, &parse/1), &({&1.bag, &1.contains}))
+  defp parse_rules(list), do: Map.new(Enum.map(list, &parse/1))
 
-  def contains?(children, _target, _rules) when children == %{}, do: false
+  def contains?(inside, _target, _rules) when inside == %{}, do: false
 
-  def contains?(children, target, rules), do: Map.has_key?(children, target) || Enum.find_value(
-    children,
+  def contains?(inside, target, rules), do: Map.has_key?(inside, target) || Enum.find_value(
+    inside,
     false,
     fn {bag, _} -> contains?(Map.get(rules, bag), target, rules) end
   )
 
-  def count(children, acc, _rules) when children == %{}, do: acc
+  def count(inside, acc, _rules) when inside == %{}, do: acc
 
-  def count(children, acc, rules),
-      do: children
-          |> Enum.map(fn {bag, count} -> acc * count(Map.get(rules, bag), count, rules) end)
+  def count(inside, acc, rules),
+      do: Enum.map(inside, fn {bag, count} -> acc * count(Map.get(rules, bag), count, rules) end)
           |> (&(Enum.sum(&1) + acc)).()
 
-  def part1(list) do
-    rules = parse_rules(list)
-    target = %Bag{color: String.to_atom("shiny gold")}
-    Enum.count(
-      rules,
-      fn {bag, _} -> bag != target && contains?(Map.get(rules, bag), target, rules) end
-    )
-  end
+  def part1(list),
+      do: (
+        &(Enum.count(&1, fn {bag, _} -> bag != @target && contains?(Map.get(&1, bag), @target, &1) end))
+        ).(parse_rules(list))
 
-  def part2(list) do
-    rules = parse_rules(list)
-    target = %Bag{color: String.to_atom("shiny gold")}
-    Enum.reduce(
-      Map.get(rules, target),
-      0,
-      fn {bag, count}, acc -> acc + count(Map.get(rules, bag), count, rules) end
-    )
-  end
+  def part2(list),
+      do: (
+        &(Enum.reduce(Map.get(&1, @target), 0, fn {bag, count}, acc -> acc + count(Map.get(&1, bag), count, &1) end))
+        ).(parse_rules(list))
 end
