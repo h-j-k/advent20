@@ -27,15 +27,11 @@ defmodule AdventOfCode.Day07 do
 
   def contains?(children, _target, _rules) when children == %{}, do: false
 
-  def contains?(children, target, rules) do
-    if Map.has_key?(children, target),
-       do: true,
-       else: Enum.find_value(
-         children,
-         false,
-         fn {bag, _} -> contains?(Map.get(rules, bag), target, rules) end
-       )
-  end
+  def contains?(children, target, rules), do: Map.has_key?(children, target) || Enum.find_value(
+    children,
+    false,
+    fn {bag, _} -> contains?(Map.get(rules, bag), target, rules) end
+  )
 
   def count(children, acc, _rules) when children == %{}, do: acc
 
@@ -47,11 +43,10 @@ defmodule AdventOfCode.Day07 do
   def part1(list) do
     rules = parse_rules(list)
     target = %Bag{color: String.to_atom("shiny gold")}
-    Enum.filter(
+    Enum.count(
       rules,
       fn {bag, _} -> bag != target && contains?(Map.get(rules, bag), target, rules) end
     )
-    |> Enum.count()
   end
 
   def part2(list) do
