@@ -1,8 +1,7 @@
 defmodule AdventOfCode.Day05Test do
   use ExUnit.Case
 
-  import AdventOfCode.Day05
-  import AdventUtils
+  import AdventOfCode.{Day05, TestUtils}
 
   @input test_file()
 
