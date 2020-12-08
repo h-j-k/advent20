@@ -6,24 +6,21 @@ defmodule AdventOfCode.Day08 do
     {instr, String.to_integer(offset)}
   end
 
-  defp parse(line, target, default), do: (&(if elem(&1, 0) == target, do: elem(&1, 1), else: default)).(parse(line))
+  defp at(line, target, default), do: (&(if elem(&1, 0) == target, do: elem(&1, 1), else: default)).(parse(line))
 
-  defp generate(list) do
+  defp generate(list), do: Enum.reduce_while(
     Stream.unfold(
       Enum.at(list, 0),
       fn {line, index} ->
-        if index == Enum.count(list),
-           do: nil, else: {{line, index}, (&(Enum.at(list, &1, {line, &1}))).(index + parse(line, "jmp", 1))}
+        next = &(Enum.at(list, &1, {line, &1}))
+        if index == length(list), do: nil, else: {{line, index}, next.(index + at(line, "jmp", 1))}
       end
-    )
-    |> Enum.reduce_while(
-         {0, []},
-         fn {line, index}, {acc, seen} ->
-           if Enum.member?(seen, index),
-              do: {:halt, {acc, seen}}, else: {:cont, {acc + parse(line, "acc", 0), [index | seen]}}
-         end
-       )
-  end
+    ),
+    {0, []},
+    fn {line, index}, {acc, seen} ->
+      if Enum.member?(seen, index), do: {:halt, {acc, seen}}, else: {:cont, {acc + at(line, "acc", 0), [index | seen]}}
+    end
+  )
 
   def part1(list), do: elem(generate(list), 0)
 
@@ -39,7 +36,7 @@ defmodule AdventOfCode.Day08 do
           {instr, offset} ->
             (if instr == "jmp", do: "nop #{offset}", else: "jmp #{offset}")
             |> (fn update -> generate(List.replace_at(list, index, {update, index})) end).()
-            |> (fn {acc, [last | _]} -> if last == Enum.count(list) - 1, do: {:halt, acc}, else: cont end).()
+            |> (fn {acc, [last | _]} -> if last + 1 == length(list), do: {:halt, acc}, else: cont end).()
         end
       end
     )
