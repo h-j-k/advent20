@@ -15,18 +15,15 @@ defmodule AdventOfCode.Day08 do
     Stream.unfold(
       Enum.at(list, 0),
       fn {line, index} ->
-        next = index + parse(line, "jmp", 1)
         if index == Enum.count(list),
-           do: nil,
-           else: {{line, index}, Enum.at(list, next, {line, next})}
+           do: nil, else: {{line, index}, (&(Enum.at(list, &1, {line, &1}))).(index + parse(line, "jmp", 1))}
       end
     )
     |> Enum.reduce_while(
          {0, []},
          fn {line, index}, {acc, seen} ->
            if Enum.member?(seen, index),
-              do: {:halt, {acc, [index | seen]}},
-              else: {:cont, {acc + parse(line, "acc", 0), [index | seen]}}
+              do: {:halt, {acc, seen}}, else: {:cont, {acc + parse(line, "acc", 0), [index | seen]}}
          end
        )
   end
@@ -34,21 +31,19 @@ defmodule AdventOfCode.Day08 do
   def part1(list), do: elem(generate(list), 0)
 
   def part2(list) do
-    last_index = Enum.count(list) - 1
-    original = elem(generate(list), 1)
-    change = fn current ->
-      line = elem(Enum.at(list, current), 0)
-      {from_instr, offset} = parse(line)
-      new_instr = if from_instr == "jmp", do: "nop #{offset}", else: "jmp #{offset}"
-      {acc, [head | _]} = generate(List.replace_at(list, current, {new_instr, current}))
-      if head == last_index, do: {:halt, acc}, else: {:cont, current}
-    end
+    [head | rest] = elem(generate(list), 1)
     Enum.reduce_while(
-      original,
-      Enum.at(original, 0),
+      rest,
+      head,
       fn current, _ ->
-        if String.starts_with?(elem(Enum.at(list, current), 0), "acc"),
-           do: {:cont, current}, else: change.(current)
+        {from_instr, offset} = parse(elem(Enum.at(list, current), 0))
+        if String.starts_with?(from_instr, "acc") do
+          {:cont, current}
+        else
+          new_instr = if from_instr == "jmp", do: "nop #{offset}", else: "jmp #{offset}"
+          {acc, [head | _]} = generate(List.replace_at(list, current, {new_instr, current}))
+          if head == Enum.count(list) - 1, do: {:halt, acc}, else: {:cont, current}
+        end
       end
     )
   end
