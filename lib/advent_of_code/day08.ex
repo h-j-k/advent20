@@ -6,10 +6,7 @@ defmodule AdventOfCode.Day08 do
     {instr, String.to_integer(offset)}
   end
 
-  defp parse(line, target, default) do
-    {instr, offset} = parse(line)
-    if instr == target, do: offset, else: default
-  end
+  defp parse(line, target, default), do: (&(if elem(&1, 0) == target, do: elem(&1, 1), else: default)).(parse(line))
 
   defp generate(list) do
     Stream.unfold(
@@ -31,18 +28,18 @@ defmodule AdventOfCode.Day08 do
   def part1(list), do: elem(generate(list), 0)
 
   def part2(list) do
-    [head | rest] = elem(generate(list), 1)
+    {_, [head | rest]} = generate(list)
     Enum.reduce_while(
       rest,
       head,
-      fn current, _ ->
-        {from_instr, offset} = parse(elem(Enum.at(list, current), 0))
-        if String.starts_with?(from_instr, "acc") do
-          {:cont, current}
-        else
-          new_instr = if from_instr == "jmp", do: "nop #{offset}", else: "jmp #{offset}"
-          {acc, [head | _]} = generate(List.replace_at(list, current, {new_instr, current}))
-          if head == Enum.count(list) - 1, do: {:halt, acc}, else: {:cont, current}
+      fn index, _ ->
+        cont = {:cont, index}
+        case parse(elem(Enum.at(list, index), 0)) do
+          {"acc", _} -> cont
+          {instr, offset} ->
+            (if instr == "jmp", do: "nop #{offset}", else: "jmp #{offset}")
+            |> (fn update -> generate(List.replace_at(list, index, {update, index})) end).()
+            |> (fn {acc, [last | _]} -> if last == Enum.count(list) - 1, do: {:halt, acc}, else: cont end).()
         end
       end
     )
