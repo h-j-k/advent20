@@ -7,9 +7,19 @@ defmodule AdventOfCode.Day08 do
   end
 
   defp generate(list) do
+    last_index = Enum.count(list) - 1
     process = fn acc, line -> acc + parse(line, "acc", 0) end
     Enum.at(list, 0)
-    |> Stream.unfold(fn {line, index} -> {{line, index}, Enum.at(list, index + parse(line, "jmp", 1))} end)
+    |> Stream.unfold(
+         fn {line, index} ->
+           if index == last_index,
+              do: nil,
+              else: {
+                {line, index},
+                Enum.at(list, index + parse(line, "jmp", 1))
+              }
+         end
+       )
     |> Enum.reduce_while(
          {0, []},
          fn {line, index}, {acc, seen} ->
