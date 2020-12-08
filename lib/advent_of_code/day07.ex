@@ -8,40 +8,37 @@ defmodule AdventOfCode.Day07 do
     {String.to_atom(bag), String.to_integer(count)}
   end
 
-  defp parse(value) do
-    [_, bag, contains] = Regex.run(~r/^(.*) bags contain (.*).$/, value)
-    {
-      String.to_atom(bag),
-      case contains do
-        "no other bags" -> %{}
-        others -> Map.new(String.split(others, ", "), &bag_and_count/1)
-      end
-    }
-  end
-
-  defp parse_rules(list), do: Map.new(Enum.map(list, &parse/1))
-
-  def contains?(inside, _target, _rules) when inside == %{}, do: false
-
-  def contains?(inside, target, rules), do: Map.has_key?(inside, target) || Enum.find_value(
-    inside,
-    false,
-    fn {bag, _} -> contains?(Map.get(rules, bag), target, rules) end
+  defp parse(list), do: Map.new(
+    list,
+    fn value ->
+      [_, bag, contains] = Regex.run(~r/^(.*) bags contain (.*).$/, value)
+      {
+        String.to_atom(bag),
+        case contains do
+          "no other bags" -> %{}
+          inside -> Map.new(String.split(inside, ", "), &bag_and_count/1)
+        end
+      }
+    end
   )
 
-  def count(inside, acc, _rules) when inside == %{}, do: acc
+  def contains?(inside, _bag, _rules) when inside == %{}, do: false
 
-  def count(inside, acc, rules),
-      do: Enum.map(inside, fn {bag, count} -> acc * count(Map.get(rules, bag), count, rules) end)
-          |> (&(Enum.sum(&1) + acc)).()
+  def contains?(inside, bag, rules), do: Map.has_key?(inside, bag)
+  || Enum.find_value(inside, false, &(contains?(rules[elem(&1, 0)], bag, rules)))
 
-  def part1(list),
-      do: (
-        &(Enum.count(&1, fn {bag, _} -> bag != @target && contains?(Map.get(&1, bag), @target, &1) end))
-        ).(parse_rules(list))
+  def count(inside, n, _rules) when inside == %{}, do: n
 
-  def part2(list),
-      do: (
-        &(Enum.reduce(Map.get(&1, @target), 0, fn {bag, count}, acc -> acc + count(Map.get(&1, bag), count, &1) end))
-        ).(parse_rules(list))
+  def count(inside, n, rules),
+      do: Enum.reduce(inside, n, fn {bag, count}, acc -> acc + n * count(rules[bag], count, rules) end)
+
+  def part1(list) do
+    rules = parse(list)
+    Enum.count(rules, fn {bag, _} -> bag != @target && contains?(rules[bag], @target, rules) end)
+  end
+
+  def part2(list) do
+    rules = parse(list)
+    Enum.reduce(rules[@target], 0, fn {bag, count}, acc -> acc + count(rules[bag], count, rules) end)
+  end
 end
