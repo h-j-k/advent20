@@ -3,7 +3,7 @@ defmodule AdventOfCode.Day09Test do
 
   import AdventOfCode.{Day09, TestUtils}
 
-  @input test_file([to_integer: true, indexed: true])
+  @input test_file([to_integer: true])
 
   test "part1", do: assert part1(@input) == 15690279
 

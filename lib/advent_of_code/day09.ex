@@ -1,33 +1,25 @@
 defmodule AdventOfCode.Day09 do
   @moduledoc "Day 09"
 
-  defp number({number, _}), do: number
-
-  defp process(list), do: Enum.find(
-    Enum.drop(list, 25),
-    fn {v, index} -> AdventOfCode.Day01.pairs_to(Enum.map(Enum.slice(list, index - 25, 25), &number/1), v) == nil end
+  defp process(list, n \\ 25), do: Enum.find_value(
+    Enum.drop(Enum.with_index(list), n),
+    fn {x, index} -> if AdventOfCode.Day01.pairs_to(Enum.slice(list, index - n, n), x) == nil, do: x, else: nil end
   )
 
-  defp sums_to?(list, index, target) do
-    result = Enum.reduce_while(
-      Enum.reverse(Enum.take(list, index)),
-      [],
-      fn x, acc ->
-        next = [number(x) | acc]
-        {(if Enum.sum(next) >= target, do: :halt, else: :cont), next}
-      end
-    )
-    if Enum.sum(result) == target,
-       do: (fn {min, max} -> min + max end).(Enum.min_max(result)), else: nil
-  end
-
-  def part1(list), do: number(process(list))
+  def part1(list), do: process(list)
 
   def part2(list) do
-    {result, index} = process(list)
+    target = process(list)
     Enum.find_value(
-      Enum.filter(Enum.take(list, index), fn {v, _} -> v <= 1 + div(result, 2) end),
-      fn {_, i} -> sums_to?(list, i, result) end
+      0..(Enum.count(list) - 1),
+      fn index ->
+        result = Enum.reduce_while(
+          Enum.reverse(Enum.take(list, index)),
+          [],
+          fn x, acc -> (&({(if Enum.sum(&1) >= target, do: :halt, else: :cont), &1})).([x | acc]) end
+        )
+        if Enum.sum(result) == target, do: Enum.sum(Tuple.to_list(Enum.min_max(result))), else: nil
+      end
     )
   end
 end
