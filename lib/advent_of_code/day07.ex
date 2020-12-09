@@ -32,13 +32,8 @@ defmodule AdventOfCode.Day07 do
   def count(inside, n, rules),
       do: Enum.reduce(inside, n, fn {bag, count}, acc -> acc + n * count(rules[bag], count, rules) end)
 
-  def part1(list) do
-    rules = parse(list)
-    Enum.count(rules, fn {bag, _} -> bag != @target && contains?(rules[bag], @target, rules) end)
-  end
+  def part1(list),
+      do: (&(Enum.count(&1, fn {bag, _} -> bag != @target && contains?(&1[bag], @target, &1) end))).(parse(list))
 
-  def part2(list) do
-    rules = parse(list)
-    Enum.reduce(rules[@target], 0, fn {bag, count}, acc -> acc + count(rules[bag], count, rules) end)
-  end
+  def part2(list), do: (&(count(&1[@target], 1, &1) - 1)).(parse(list))
 end
