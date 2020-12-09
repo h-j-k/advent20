@@ -3,7 +3,7 @@ defmodule AdventOfCode.Day01 do
 
   @year 2020
 
-  defp pairs_to(numbers, target), do: Enum.find(numbers, &((target - &1) in numbers))
+  def pairs_to(numbers, target), do: Enum.find(numbers, &((target - &1) in numbers))
 
   def part1(numbers), do: (&(&1 * (@year - &1))).(pairs_to(numbers, @year))
 
