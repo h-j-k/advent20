@@ -22,12 +22,8 @@ defmodule AdventOfCode.Day07 do
     end
   )
 
-  def contains?(inside, _bag, _rules) when inside == %{}, do: false
-
   def contains?(inside, bag, rules), do: Map.has_key?(inside, bag)
   || Enum.find_value(inside, false, &(contains?(rules[elem(&1, 0)], bag, rules)))
-
-  def count(inside, n, _rules) when inside == %{}, do: n
 
   def count(inside, n, rules),
       do: Enum.reduce(inside, n, fn {bag, count}, acc -> acc + n * count(rules[bag], count, rules) end)
