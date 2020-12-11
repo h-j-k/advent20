@@ -17,7 +17,7 @@ defmodule AdventOfCode.Day11 do
 
   defp process(seats, grid, get_occupied, to_empty_threshold) do
     fn seat ->
-      occupied = Enum.count(get_occupied.(seats, grid, seat), &(MapSet.member?(seats, &1)))
+      occupied = get_occupied.(seats, grid, seat)
       empty? = cond do
         seat.empty? && occupied == 0 -> false
         !seat.empty? && occupied >= to_empty_threshold -> true
@@ -42,13 +42,16 @@ defmodule AdventOfCode.Day11 do
 
   def part1(list), do: process(
     list,
-    fn _, grid, seat ->
-      Enum.filter(
-        Enum.map(
-          [{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}],
-          fn {x, y} -> %Seat{x: seat.x + x, y: seat.y + y, empty?: false} end
+    fn seats, grid, seat ->
+      Enum.count(
+        Enum.filter(
+          Enum.map(
+            [{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}],
+            fn {x, y} -> %Seat{x: seat.x + x, y: seat.y + y, empty?: false} end
+          ),
+          &(&1.x <= grid.max_x && &1.y <= grid.max_y)
         ),
-        &(&1.x <= grid.max_x && &1.y <= grid.max_y)
+        &(MapSet.member?(seats, &1))
       )
     end,
     4
