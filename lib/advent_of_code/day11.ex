@@ -1,7 +1,11 @@
 defmodule AdventOfCode.Day11 do
   @moduledoc "Day 11"
 
-  defmodule Seat, do: defstruct x: 0, y: 0, empty?: true
+  defmodule Seat do
+    defstruct x: 0, y: 0, empty?: true
+
+    def occupied?(seat), do: seat != nil && !seat.empty?
+  end
 
   defmodule SeatMap do
     defstruct seats: MapSet.new(), row: %{}, col: %{}
@@ -15,26 +19,6 @@ defmodule AdventOfCode.Day11 do
       row: group_by(seats, &(&1.y)),
       col: group_by(seats, &(&1.x))
     }
-
-    def diagonals(seat_map, seat, occupied) do
-      seats = Enum.filter(
-        seat_map.seats,
-        &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0)
-      )
-      {a, b, c, d} = Enum.reduce(
-        seats,
-        {nil, nil, nil, nil},
-        fn s, {h, j, k, l} ->
-          {
-            (if s.x < seat.x && s.y < seat.y && (h == nil || s.x > h.x), do: s, else: h),
-            (if s.x > seat.x && s.y < seat.y && (j == nil || s.x < j.x), do: s, else: j),
-            (if s.x > seat.x && s.y > seat.y && (k == nil || s.x < k.x), do: s, else: k),
-            (if s.x < seat.x && s.y > seat.y && (l == nil || s.x > l.x), do: s, else: l),
-          }
-        end
-      )
-      occupied + Enum.count([a, b, c, d], &(&1 != nil && !&1.empty?))
-    end
   end
 
   defp seat(row), do: fn {cell, col} ->
@@ -67,7 +51,7 @@ defmodule AdventOfCode.Day11 do
       ),
       -1
     )
-    Enum.count(process.(r).seats, &(!&1.empty?))
+    Enum.count(process.(r).seats, &Seat.occupied?/1)
   end
 
   def part1(list), do: process(
@@ -88,44 +72,65 @@ defmodule AdventOfCode.Day11 do
     end
   )
 
-  def part2(list), do: process(
-    list,
-    fn seat_map, seat ->
-      {w, e} = Enum.reduce(
-        seat_map.row[seat.y],
-        {nil, nil},
-        fn s, {min, max} ->
-          {
-            (if s.x < seat.x && (min == nil || s.x > min.x), do: s, else: min),
-            (if s.x > seat.x && (max == nil || s.x < max.x), do: s, else: max),
-          }
-        end
+  def part2(list) do
+    diagonals = fn seat_map, seat ->
+      Enum.filter(
+        seat_map.seats,
+        &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0)
       )
-      if seat.empty? && Enum.any?([w, e], &(&1 != nil && !&1.empty?)) do
-        seat.empty?
-      else
-        {n, s} = Enum.reduce(
-          seat_map.col[seat.x],
+      |> Enum.reduce(
+           {nil, nil, nil, nil},
+           fn s, {nw, ne, se, sw} ->
+             {
+               (if s.x < seat.x && s.y < seat.y && (nw == nil || s.x > nw.x), do: s, else: nw),
+               (if s.x > seat.x && s.y < seat.y && (ne == nil || s.x < ne.x), do: s, else: ne),
+               (if s.x > seat.x && s.y > seat.y && (se == nil || s.x < se.x), do: s, else: se),
+               (if s.x < seat.x && s.y > seat.y && (sw == nil || s.x > sw.x), do: s, else: sw),
+             }
+           end
+         )
+      |> Tuple.to_list
+      |> Enum.count(&Seat.occupied?/1)
+    end
+    process(
+      list,
+      fn seat_map, seat ->
+        {w, e} = Enum.reduce(
+          seat_map.row[seat.y],
           {nil, nil},
           fn s, {min, max} ->
             {
-              (if s.y < seat.y && (min == nil || s.y > min.y), do: s, else: min),
-              (if s.y > seat.y && (max == nil || s.y < max.y), do: s, else: max),
+              (if s.x < seat.x && (min == nil || s.x > min.x), do: s, else: min),
+              (if s.x > seat.x && (max == nil || s.x < max.x), do: s, else: max),
             }
           end
         )
-        occupied = Enum.count([w, e, n, s], &(&1 != nil && !&1.empty?))
-        if (!seat.empty? && occupied == 0) || (seat.empty? && occupied > 0) do
+        if seat.empty? && Enum.any?([w, e], &Seat.occupied?/1) do
           seat.empty?
         else
-          occupied = SeatMap.diagonals(seat_map, seat, occupied)
-          cond do
-            seat.empty? && occupied == 0 -> false
-            !seat.empty? && occupied >= 5 -> true
-            true -> seat.empty?
+          {n, s} = Enum.reduce(
+            seat_map.col[seat.x],
+            {nil, nil},
+            fn s, {min, max} ->
+              {
+                (if s.y < seat.y && (min == nil || s.y > min.y), do: s, else: min),
+                (if s.y > seat.y && (max == nil || s.y < max.y), do: s, else: max),
+              }
+            end
+          )
+          occupied = Enum.count([w, e, n, s], &Seat.occupied?/1)
+          if (!seat.empty? && occupied == 0) || (seat.empty? && occupied > 0) do
+            seat.empty?
+          else
+            occupied = occupied + diagonals.(seat_map, seat)
+            cond do
+              seat.empty? && occupied == 0 -> false
+              !seat.empty? && occupied >= 5 -> true
+              true -> seat.empty?
+            end
           end
         end
       end
-    end
-  )
+    )
+  end
 end
