@@ -8,14 +8,10 @@ defmodule AdventOfCode.Day11 do
   defmodule SeatMap do
     defstruct seats: MapSet.new(), row: %{}, col: %{}
 
-    defp group_by(seats, mapper) do
-      Map.new(Enum.group_by(seats, mapper), fn {k, v} -> {k, MapSet.new(v)} end)
-    end
-
     def new(seats), do: %SeatMap{
       seats: MapSet.new(seats),
-      row: group_by(seats, &(&1.y)),
-      col: group_by(seats, &(&1.x))
+      row: Map.new(Enum.group_by(seats, &(&1.y)), fn {k, v} -> {k, Enum.sort_by(v, &(&1.x))} end),
+      col: Map.new(Enum.group_by(seats, &(&1.x)), fn {k, v} -> {k, Enum.sort_by(v, &(&1.y))} end)
     }
   end
 
@@ -71,54 +67,45 @@ defmodule AdventOfCode.Day11 do
           end
         end
       )
-      if (seat.empty? && occupied == 0) || (!seat.empty? && occupied >= 4), do: !seat.empty?, else: seat.empty?
+      if (seat.empty? && occupied == 0) || (!seat.empty? && occupied >= 4),
+         do: !seat.empty?, else: seat.empty?
     end
   )
 
   def part2(list) do
     diagonals = fn seat_map, seat ->
       Enum.filter(seat_map.seats, &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0))
-      |> Enum.reduce(
-           {nil, nil, nil, nil},
-           fn s, {nw, ne, se, sw} ->
-             {
-               (if s.x < seat.x && s.y < seat.y && (nw == nil || s.x > nw.x), do: s, else: nw),
-               (if s.x > seat.x && s.y < seat.y && (ne == nil || s.x < ne.x), do: s, else: ne),
-               (if s.x > seat.x && s.y > seat.y && (se == nil || s.x < se.x), do: s, else: se),
-               (if s.x < seat.x && s.y > seat.y && (sw == nil || s.x > sw.x), do: s, else: sw),
-             }
+      |> Enum.sort_by(&(abs(seat.x - &1.x)))
+      |> Enum.reduce_while(
+           [nil, nil, nil, nil],
+           fn s, [nw, ne, se, sw] ->
+             updated = cond do
+               s.x < seat.x && s.y < seat.y && nw == nil -> [s, ne, se, sw]
+               s.x > seat.x && s.y < seat.y && ne == nil -> [nw, s, se, sw]
+               s.x > seat.x && s.y > seat.y && se == nil -> [nw, ne, s, sw]
+               s.x < seat.x && s.y > seat.y && sw == nil -> [nw, ne, se, s]
+               true -> [nw, ne, se, sw]
+             end
+             {(if Enum.any?(updated, &(&1 == nil)), do: :cont, else: :halt), updated}
            end
          )
-      |> (&(occupied(Tuple.to_list(&1)))).()
+      |> occupied
     end
     process(
       list,
       fn seat_map, seat ->
-        {w, e} = Enum.reduce(
-          seat_map.row[seat.y],
-          {nil, nil},
-          fn s, {min, max} ->
-            {
-              (if s.x < seat.x && (min == nil || s.x > min.x), do: s, else: min),
-              (if s.x > seat.x && (max == nil || s.x < max.x), do: s, else: max),
-            }
-          end
-        )
-        if seat.empty? && occupied([w, e]) > 0 do
+        row = seat_map.row[seat.y]
+        x_index = Enum.find_index(row, &(&1.x == seat.x))
+        x_offset = if x_index == 0, do: [1], else: [-1, 1]
+        horizontal = Enum.map(x_offset, &(Enum.at(row, x_index + &1)))
+        if seat.empty? && occupied(horizontal) > 0 do
           seat.empty?
         else
-          {n, s} = Enum.reduce(
-            seat_map.col[seat.x],
-            {nil, nil},
-            fn s, {min, max} ->
-              {
-                (if s.y < seat.y && (min == nil || s.y > min.y), do: s, else: min),
-                (if s.y > seat.y && (max == nil || s.y < max.y), do: s, else: max),
-              }
-            end
-          )
-          occupied = occupied([w, e, n, s])
-          if (!seat.empty? && occupied == 0) || (seat.empty? && occupied > 0) do
+          col = seat_map.col[seat.x]
+          y_index = Enum.find_index(col, &(&1.y == seat.y))
+          y_offset = if y_index == 0, do: [1], else: [-1, 1]
+          occupied = occupied(horizontal ++ Enum.map(y_offset, &(Enum.at(col, y_index + &1))))
+          if (seat.empty? && occupied > 0) || (!seat.empty? && occupied == 0) do
             seat.empty?
           else
             occupied = occupied + diagonals.(seat_map, seat)
