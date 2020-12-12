@@ -3,8 +3,6 @@ defmodule AdventOfCode.Day11 do
 
   defmodule Seat do
     defstruct x: 0, y: 0, empty?: true
-
-    def occupied?(seat), do: seat != nil && !seat.empty?
   end
 
   defmodule SeatMap do
@@ -35,6 +33,8 @@ defmodule AdventOfCode.Day11 do
     end
   )
 
+  defp occupied(seats), do: Enum.count(seats, &(&1 != nil && !&1.empty?))
+
   defp run(seat_map, is_empty), do: fn seat ->
     %Seat{x: seat.x, y: seat.y, empty?: is_empty.(seat_map, seat)}
   end
@@ -51,7 +51,7 @@ defmodule AdventOfCode.Day11 do
       ),
       -1
     )
-    Enum.count(process.(r).seats, &Seat.occupied?/1)
+    occupied(process.(r).seats)
   end
 
   def part1(list), do: process(
@@ -89,8 +89,7 @@ defmodule AdventOfCode.Day11 do
              }
            end
          )
-      |> Tuple.to_list
-      |> Enum.count(&Seat.occupied?/1)
+      |> (&(occupied(Tuple.to_list(&1)))).()
     end
     process(
       list,
@@ -105,7 +104,7 @@ defmodule AdventOfCode.Day11 do
             }
           end
         )
-        if seat.empty? && Enum.any?([w, e], &Seat.occupied?/1) do
+        if seat.empty? && occupied([w, e]) > 0 do
           seat.empty?
         else
           {n, s} = Enum.reduce(
@@ -118,7 +117,7 @@ defmodule AdventOfCode.Day11 do
               }
             end
           )
-          occupied = Enum.count([w, e, n, s], &Seat.occupied?/1)
+          occupied = occupied([w, e, n, s])
           if (!seat.empty? && occupied == 0) || (seat.empty? && occupied > 0) do
             seat.empty?
           else
