@@ -57,27 +57,27 @@ defmodule AdventOfCode.Day11 do
   def part1(list), do: process(
     list,
     fn seat_map, seat ->
-      occupied = Enum.count(
+      occupied = Enum.reduce_while(
         Enum.map(
           [{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}],
           fn {x, y} -> %Seat{x: seat.x + x, y: seat.y + y, empty?: false} end
         ),
-        &(MapSet.member?(seat_map.seats, &1))
+        0,
+        fn s, acc ->
+          if MapSet.member?(seat_map.seats, s) do
+            if seat.empty? || acc == 3, do: {:halt, 4}, else: {:cont, acc + 1}
+          else
+            {:cont, acc}
+          end
+        end
       )
-      cond do
-        seat.empty? && occupied == 0 -> false
-        !seat.empty? && occupied >= 4 -> true
-        true -> seat.empty?
-      end
+      if (seat.empty? && occupied == 0) || (!seat.empty? && occupied >= 4), do: !seat.empty?, else: seat.empty?
     end
   )
 
   def part2(list) do
     diagonals = fn seat_map, seat ->
-      Enum.filter(
-        seat_map.seats,
-        &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0)
-      )
+      Enum.filter(seat_map.seats, &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0))
       |> Enum.reduce(
            {nil, nil, nil, nil},
            fn s, {nw, ne, se, sw} ->
