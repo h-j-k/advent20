@@ -5,8 +5,8 @@ defmodule AdventOfCode.Day11Test do
 
   @input test_file([indexed: true])
 
-  @tag timeout: :infinity
   test "part1", do: assert part1(@input) == 2329
 
-  test "part2", do: assert part2(@input) == -1
+  @tag timeout: :infinity
+  test "part2", do: assert part2(@input) == 2138
 end
