@@ -4,24 +4,29 @@ defmodule AdventOfCode.Day11 do
   defmodule Seat, do: defstruct x: 0, y: 0, empty?: true
 
   defmodule SeatMap do
-    defstruct seats: MapSet.new(), row: %{}, col: %{}
+    defstruct seats: MapSet.new(), row: %{}, col: %{}, same: MapSet.new(), to_process: MapSet.new()
 
-    def new(seats), do: %SeatMap{
-      seats: MapSet.new(seats),
+    def new(seats, previous \\ MapSet.new()), do: %SeatMap{
+      seats: seats,
       row: Map.new(Enum.group_by(seats, &(&1.y)), fn {k, v} -> {k, Enum.sort_by(v, &(&1.x))} end),
-      col: Map.new(Enum.group_by(seats, &(&1.x)), fn {k, v} -> {k, Enum.sort_by(v, &(&1.y))} end)
+      col: Map.new(Enum.group_by(seats, &(&1.x)), fn {k, v} -> {k, Enum.sort_by(v, &(&1.y))} end),
+      same: MapSet.intersection(seats, previous),
+      to_process: MapSet.difference(seats, previous)
     }
   end
 
-  defp parse(list), do: Enum.flat_map(
-    list,
-    fn {line, index} ->
-      String.graphemes(line)
-      |> Enum.with_index
-      |> Enum.map(fn {cell, col} -> if cell == "L", do: %Seat{x: col, y: index}, else: nil end)
-      |> Enum.filter(&(&1 != nil))
-    end
-  )
+  defp parse(list) do
+    list
+    |> Enum.flat_map(
+         fn {line, index} ->
+           String.graphemes(line)
+           |> Enum.with_index
+           |> Enum.map(fn {cell, col} -> if cell == "L", do: %Seat{x: col, y: index}, else: nil end)
+           |> Enum.filter(&(&1 != nil))
+         end
+       )
+    |> MapSet.new
+  end
 
   defp occupied(seats), do: Enum.count(seats, &(&1 != nil && !&1.empty?))
 
@@ -30,7 +35,8 @@ defmodule AdventOfCode.Day11 do
   end
 
   defp process(list, is_empty) do
-    process = &(SeatMap.new(MapSet.new(&1.seats, run(&1, is_empty))))
+    process = &(SeatMap.new(MapSet.union(&1.same, MapSet.new(&1.to_process, run(&1, is_empty))), &1.seats))
+    # process = &(SeatMap.new(MapSet.new(&1.seats, run(&1, is_empty))))
     r = Enum.at(
       Stream.unfold(
         SeatMap.new(parse(list)),
