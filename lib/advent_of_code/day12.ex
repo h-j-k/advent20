@@ -1,37 +1,32 @@
 defmodule AdventOfCode.Day12 do
   @moduledoc "Day 12"
 
-  defmodule PartOneShip do
-    defstruct x: 0, y: 0, face: :e
+  defmodule PartOneShip, do: defstruct x: 0, y: 0, face: :e
 
+  defmodule PartTwoShip, do: defstruct x: 0, y: 0, waypoint_x: 10, waypoint_y: -1
+
+  defprotocol Ship do
+    def turn(ship)
+    def forward(ship, value)
+  end
+
+  defimpl Ship, for: PartOneShip do
     @turns [:n, :e, :s, :w]
-
-    def north(ship, value), do: %{ship | y: ship.y - value}
-    def south(ship, value), do: %{ship | y: ship.y + value}
-    def east(ship, value), do: %{ship | x: ship.x + value}
-    def west(ship, value), do: %{ship | x: ship.x - value}
 
     def turn(ship),
         do: %{ship | face: Enum.at(@turns, Enum.find_index(@turns, &(&1 == ship.face)) + 1, :n)}
 
     def forward(ship, value) do
       case ship.face do
-        :n -> north(ship, value)
-        :s -> south(ship, value)
-        :e -> east(ship, value)
-        :w -> west(ship, value)
+        :n -> %{y: ship.y - value}
+        :s -> %{y: ship.y + value}
+        :e -> %{x: ship.x + value}
+        :w -> %{x: ship.x - value}
       end
     end
   end
 
-  defmodule PartTwoShip do
-    defstruct x: 0, y: 0, waypoint_x: 10, waypoint_y: -1
-
-    def north(ship, value), do: %{ship | waypoint_y: ship.waypoint_y - value}
-    def south(ship, value), do: %{ship | waypoint_y: ship.waypoint_y + value}
-    def east(ship, value), do: %{ship | waypoint_x: ship.waypoint_x + value}
-    def west(ship, value), do: %{ship | waypoint_x: ship.waypoint_x - value}
-
+  defimpl Ship, for: PartTwoShip do
     def turn(ship) do
       case {ship.waypoint_x, ship.waypoint_y} do
         {x, y} when x >= 0 and y < 0 -> %{ship | waypoint_x: abs(y), waypoint_y: x}
@@ -64,7 +59,7 @@ defmodule AdventOfCode.Day12 do
     list
     |> Enum.flat_map(&(Map.get(@convert, &1, [&1])))
     |> Enum.map(&parse/1)
-    |> Enum.reduce(ship, processor)
+    |> Enum.reduce(ship, &(Map.merge(&2, processor.(&1, &2))))
     |> (&(abs(&1.x) + abs(&1.y))).()
   end
 
@@ -72,12 +67,12 @@ defmodule AdventOfCode.Day12 do
     list,
     %PartOneShip{},
     fn
-      {:N, value}, ship -> PartOneShip.north(ship, value)
-      {:S, value}, ship -> PartOneShip.south(ship, value)
-      {:E, value}, ship -> PartOneShip.east(ship, value)
-      {:W, value}, ship -> PartOneShip.west(ship, value)
-      {:T, _}, ship -> PartOneShip.turn(ship)
-      {:F, value}, ship -> PartOneShip.forward(ship, value)
+      {:N, value}, ship -> %{y: ship.y - value}
+      {:S, value}, ship -> %{y: ship.y + value}
+      {:E, value}, ship -> %{x: ship.x + value}
+      {:W, value}, ship -> %{x: ship.x - value}
+      {:T, _}, ship -> Ship.turn(ship)
+      {:F, value}, ship -> Ship.forward(ship, value)
     end
   )
 
@@ -85,12 +80,12 @@ defmodule AdventOfCode.Day12 do
     list,
     %PartTwoShip{},
     fn
-      {:N, value}, ship -> PartTwoShip.north(ship, value)
-      {:S, value}, ship -> PartTwoShip.south(ship, value)
-      {:E, value}, ship -> PartTwoShip.east(ship, value)
-      {:W, value}, ship -> PartTwoShip.west(ship, value)
-      {:T, _}, ship -> PartTwoShip.turn(ship)
-      {:F, value}, ship -> PartTwoShip.forward(ship, value)
+      {:N, value}, ship -> %{waypoint_y: ship.waypoint_y - value}
+      {:S, value}, ship -> %{waypoint_y: ship.waypoint_y + value}
+      {:E, value}, ship -> %{waypoint_x: ship.waypoint_x + value}
+      {:W, value}, ship -> %{waypoint_x: ship.waypoint_x - value}
+      {:T, _}, ship -> Ship.turn(ship)
+      {:F, value}, ship -> Ship.forward(ship, value)
     end
   )
 end
