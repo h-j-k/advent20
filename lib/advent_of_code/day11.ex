@@ -1,9 +1,7 @@
 defmodule AdventOfCode.Day11 do
   @moduledoc "Day 11"
 
-  defmodule Seat do
-    defstruct x: 0, y: 0, empty?: true
-  end
+  defmodule Seat, do: defstruct x: 0, y: 0, empty?: true
 
   defmodule SeatMap do
     defstruct seats: MapSet.new(), row: %{}, col: %{}
@@ -15,16 +13,12 @@ defmodule AdventOfCode.Day11 do
     }
   end
 
-  defp seat(row), do: fn {cell, col} ->
-    if cell == "L", do: %Seat{x: col, y: row}, else: nil
-  end
-
   defp parse(list), do: Enum.flat_map(
     list,
     fn {line, index} ->
       String.graphemes(line)
       |> Enum.with_index
-      |> Enum.map(seat(index))
+      |> Enum.map(fn {cell, col} -> if cell == "L", do: %Seat{x: col, y: index}, else: nil end)
       |> Enum.filter(&(&1 != nil))
     end
   )
@@ -73,6 +67,12 @@ defmodule AdventOfCode.Day11 do
   )
 
   def part2(list) do
+    neighbors = fn line, finder ->
+      case Enum.find_index(line, finder) do
+        0 -> [Enum.at(line, 1)]
+        n -> Enum.map([-1, 1], &(Enum.at(line, n + &1)))
+      end
+    end
     diagonals = fn seat_map, seat ->
       Enum.filter(seat_map.seats, &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0))
       |> Enum.sort_by(&(abs(seat.x - &1.x)))
@@ -94,25 +94,18 @@ defmodule AdventOfCode.Day11 do
     process(
       list,
       fn seat_map, seat ->
-        row = seat_map.row[seat.y]
-        x_index = Enum.find_index(row, &(&1.x == seat.x))
-        x_offset = if x_index == 0, do: [1], else: [-1, 1]
-        horizontal = Enum.map(x_offset, &(Enum.at(row, x_index + &1)))
+        horizontal = neighbors.(seat_map.row[seat.y], &(&1.x == seat.x))
         if seat.empty? && occupied(horizontal) > 0 do
           seat.empty?
         else
-          col = seat_map.col[seat.x]
-          y_index = Enum.find_index(col, &(&1.y == seat.y))
-          y_offset = if y_index == 0, do: [1], else: [-1, 1]
-          occupied = occupied(horizontal ++ Enum.map(y_offset, &(Enum.at(col, y_index + &1))))
+          occupied = occupied(horizontal ++ neighbors.(seat_map.col[seat.x], &(&1.y == seat.y)))
           if (seat.empty? && occupied > 0) || (!seat.empty? && occupied == 0) do
             seat.empty?
           else
-            occupied = occupied + diagonals.(seat_map, seat)
-            cond do
-              seat.empty? && occupied == 0 -> false
-              !seat.empty? && occupied >= 5 -> true
-              true -> seat.empty?
+            case occupied + diagonals.(seat_map, seat) do
+              0 when seat.empty? -> false
+              n when n >= 5 and not seat.empty? -> true
+              _ -> seat.empty?
             end
           end
         end
