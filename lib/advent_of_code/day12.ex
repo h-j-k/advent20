@@ -1,7 +1,7 @@
 defmodule AdventOfCode.Day12 do
   @moduledoc "Day 12"
 
-  defmodule PartOneShip, do: defstruct x: 0, y: 0, face: :e
+  defmodule PartOneShip, do: defstruct x: 0, y: 0, face: :E
 
   defmodule PartTwoShip, do: defstruct x: 0, y: 0, waypoint_x: 10, waypoint_y: -1
 
@@ -11,17 +11,17 @@ defmodule AdventOfCode.Day12 do
   end
 
   defimpl Ship, for: PartOneShip do
-    @turns [:n, :e, :s, :w]
+    @turns [:N, :E, :S, :W]
 
     def turn(ship),
-        do: %{ship | face: Enum.at(@turns, Enum.find_index(@turns, &(&1 == ship.face)) + 1, :n)}
+        do: %{face: Enum.at(@turns, Enum.find_index(@turns, &(&1 == ship.face)) + 1, :N)}
 
     def forward(ship, value) do
       case ship.face do
-        :n -> %{y: ship.y - value}
-        :s -> %{y: ship.y + value}
-        :e -> %{x: ship.x + value}
-        :w -> %{x: ship.x - value}
+        :N -> %{y: ship.y - value}
+        :S -> %{y: ship.y + value}
+        :E -> %{x: ship.x + value}
+        :W -> %{x: ship.x - value}
       end
     end
   end
@@ -29,50 +29,41 @@ defmodule AdventOfCode.Day12 do
   defimpl Ship, for: PartTwoShip do
     def turn(ship) do
       case {ship.waypoint_x, ship.waypoint_y} do
-        {x, y} when x >= 0 and y < 0 -> %{ship | waypoint_x: abs(y), waypoint_y: x}
-        {x, y} when x > 0 and y >= 0 -> %{ship | waypoint_x: -y, waypoint_y: x}
-        {x, y} when x <= 0 and y > 0 -> %{ship | waypoint_x: -y, waypoint_y: x}
-        {x, y} when x < 0 and y <= 0 -> %{ship | waypoint_x: abs(y), waypoint_y: x}
-        {x, y} when x == 0 and y == 0 -> ship
+        {x, y} when x >= 0 and y < 0 -> %{waypoint_x: abs(y), waypoint_y: x}
+        {x, y} when x > 0 and y >= 0 -> %{waypoint_x: -y, waypoint_y: x}
+        {x, y} when x <= 0 and y > 0 -> %{waypoint_x: -y, waypoint_y: x}
+        {x, y} when x < 0 and y <= 0 -> %{waypoint_x: abs(y), waypoint_y: x}
+        {x, y} when x == 0 and y == 0 -> %{}
       end
     end
 
     def forward(ship, value),
-        do: %{ship | x: ship.x + ship.waypoint_x * value, y: ship.y + ship.waypoint_y * value}
+        do: %{x: ship.x + ship.waypoint_x * value, y: ship.y + ship.waypoint_y * value}
   end
-
-  @convert %{
-    "R90" => ["T0"],
-    "R180" => ["T0", "T0"],
-    "R270" => ["T0", "T0", "T0"],
-    "L90" => ["T0", "T0", "T0"],
-    "L180" => ["T0", "T0"],
-    "L270" => ["T0"]
-  }
 
   defp parse(line) do
-    [_, heading, value] = Regex.run(~r/^([NSEWTF])(\d+)$/, line)
-    {String.to_atom(heading), String.to_integer(value)}
+    [_, heading, value] = Regex.run(~r/^([NSEWLRF])(\d+)$/, line)
+    turn = {:T, nil}
+    case {String.to_atom(heading), String.to_integer(value)} do
+      n when n == {:R, 90} or n == {:L, 270} -> [turn]
+      n when n == {:R, 180} or n == {:L, 180} -> [turn, turn]
+      n when n == {:R, 270} or n == {:L, 90} -> [turn, turn, turn]
+      result -> [result]
+    end
   end
 
-  defp process(list, ship, processor) do
-    list
-    |> Enum.flat_map(&(Map.get(@convert, &1, [&1])))
-    |> Enum.map(&parse/1)
-    |> Enum.reduce(ship, &(Map.merge(&2, processor.(&1, &2))))
-    |> (&(abs(&1.x) + abs(&1.y))).()
-  end
+  defp process(list, ship, processor),
+       do: Enum.flat_map(list, &parse/1)
+           |> Enum.reduce(ship, &(Map.merge(&2, processor.(&1, &2))))
+           |> (&(abs(&1.x) + abs(&1.y))).()
 
   def part1(list), do: process(
     list,
     %PartOneShip{},
     fn
-      {:N, value}, ship -> %{y: ship.y - value}
-      {:S, value}, ship -> %{y: ship.y + value}
-      {:E, value}, ship -> %{x: ship.x + value}
-      {:W, value}, ship -> %{x: ship.x - value}
       {:T, _}, ship -> Ship.turn(ship)
       {:F, value}, ship -> Ship.forward(ship, value)
+      {direction, value}, ship -> Ship.forward(%{ship | face: direction}, value)
     end
   )
 
