@@ -77,48 +77,42 @@ defmodule AdventOfCode.Day11 do
     )
   end
 
-  defp part_two_neighbors(by_row) do
-    seats = Enum.flat_map(by_row, &(elem(&1, 1)))
-    by_col = Map.new(
-      Enum.group_by(seats, &(&1.x)),
-      fn {k, v} -> {k, Enum.sort_by(v, &(&1.y))} end
-    )
-    neighbors = fn line, finder ->
-      case Enum.find_index(line, finder) do
-        0 -> [Enum.at(line, 1)]
-        n -> Enum.map([-1, 1], &(Enum.at(line, n + &1)))
-      end
-    end
-    Enum.flat_map(
-      by_row,
-      fn {_, row_seats} ->
-        Enum.map(
-          row_seats,
-          fn seat ->
-            horizontal = neighbors.(row_seats, &(&1.x == seat.x))
-            vertical = neighbors.(by_col[seat.x], &(&1.y == seat.y))
-            Enum.filter(seats, &(abs(seat.x - &1.x) - abs(seat.y - &1.y) == 0))
-            |> Enum.sort_by(&(abs(seat.x - &1.x)))
-            |> Enum.reduce_while(
-                 [nil, nil, nil, nil],
-                 fn s, [nw, ne, se, sw] ->
-                   updated = cond do
-                     s.x < seat.x && s.y < seat.y && nw == nil -> [s, ne, se, sw]
-                     s.x > seat.x && s.y < seat.y && ne == nil -> [nw, s, se, sw]
-                     s.x > seat.x && s.y > seat.y && se == nil -> [nw, ne, s, sw]
-                     s.x < seat.x && s.y > seat.y && sw == nil -> [nw, ne, se, s]
-                     true -> [nw, ne, se, sw]
-                   end
-                   {(if Enum.any?(updated, &(&1 == nil)), do: :cont, else: :halt), updated}
-                 end
-               )
-            |> (fn diagonals -> Enum.filter(diagonals ++ horizontal ++ vertical, &(&1 != nil)) end).()
-            |> (fn positions -> {{seat.x, seat.y}, Enum.map(positions, &({&1.x, &1.y}))} end).()
+  defp part_two_neighbors(by_row), do: Enum.flat_map(
+    by_row,
+    fn {_, seats} ->
+      Enum.map(
+        seats,
+        fn seat ->
+          neighbors = case Enum.find_index(seats, &(&1.x == seat.x)) do
+            0 -> [Enum.at(seats, 1)]
+            n -> Enum.map([-1, 1], &(Enum.at(seats, n + &1)))
           end
-        )
-      end
-    )
-  end
+          Enum.flat_map(
+            by_row,
+            fn r -> Enum.filter(elem(r, 1), &(seat.x == &1.x || abs(seat.x - &1.x) == abs(seat.y - &1.y))) end
+          )
+          |> Enum.sort_by(&(abs(seat.y - &1.y)))
+          |> Enum.reduce_while(
+               [nil, nil, nil, nil, nil, nil],
+               fn a, [n, s, nw, ne, se, sw] ->
+                 positions = cond do
+                   a.x == seat.x && a.y < seat.y && n == nil -> [a, s, nw, ne, se, sw]
+                   a.x == seat.x && a.y > seat.y && s == nil -> [n, a, nw, ne, se, sw]
+                   a.x < seat.x && a.y < seat.y && nw == nil -> [n, s, a, ne, se, sw]
+                   a.x > seat.x && a.y < seat.y && ne == nil -> [n, s, nw, a, se, sw]
+                   a.x > seat.x && a.y > seat.y && se == nil -> [n, s, nw, ne, a, sw]
+                   a.x < seat.x && a.y > seat.y && sw == nil -> [n, s, nw, ne, se, a]
+                   true -> [n, s, nw, ne, se, sw]
+                 end
+                 {(if Enum.any?(positions, &(&1 == nil)), do: :cont, else: :halt), positions}
+               end
+             )
+          |> (fn rest -> Enum.filter(rest ++ neighbors, &(&1 != nil)) end).()
+          |> (fn positions -> {{seat.x, seat.y}, Enum.map(positions, &({&1.x, &1.y}))} end).()
+        end
+      )
+    end
+  )
 
   def part1(list), do: process(list, &part_one_neighbors/1, 4)
 
