@@ -122,11 +122,20 @@ defmodule AdventOfCode.Day11 do
     process(
       list,
       fn seat_map, seat ->
-        neighbors = Enum.map(
+        occupied = Enum.reduce_while(
           seat_map.neighbors[{seat.x, seat.y}],
-          fn {x, y} -> Enum.find(Map.get(seat_map.row, y, []), &(&1.x == x)) end
+          0,
+          fn {x, y}, acc ->
+            case Enum.find(Map.get(seat_map.row, y, []), &(&1.x == x)) do
+              nil -> {:cont, acc}
+              s when seat.empty? and not s.empty? -> {:halt, 5}
+              s when seat.empty? == s.empty? and acc == 4 -> {:halt, 5}
+              s when not s.empty? -> {:cont, acc + 1}
+              s when s.empty? -> {:cont, acc}
+            end
+          end
         )
-        case occupied(neighbors) do
+        case occupied do
           0 when seat.empty? -> false
           n when n >= 5 and not seat.empty? -> true
           _ -> seat.empty?
