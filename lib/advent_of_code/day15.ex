@@ -7,7 +7,7 @@ defmodule AdventOfCode.Day15 do
     |> Enum.reduce(
          {base, nil},
          fn turn, {seen, last} ->
-           next = case Map.get(seen, last, [0]) do
+           next = case seen[last] do
              [a, b] -> a - b
              _ -> 0
            end
