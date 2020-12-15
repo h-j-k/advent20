@@ -2,14 +2,16 @@ defmodule AdventOfCode.Day15 do
   @moduledoc "Day 15"
 
   defp process(input, limit) do
-    base = Map.new(Enum.with_index(String.split(hd(input), ","), 1), fn {n, t} -> {String.to_integer(n), [t]} end)
-    (1 + Enum.count(base))..limit
+    base = Map.new(Enum.with_index(String.split(hd(input), ",")), fn {n, t} -> {String.to_integer(n), [t]} end)
+    Enum.count(base)..(limit - 1)
     |> Enum.reduce(
          {base, nil},
          fn turn, {seen, last} ->
-           past = Enum.take(Map.get(seen, last, []), 2)
-           next = if Enum.count(past) < 2, do: 0, else: Enum.reduce(past, &(&2 - &1))
-           {Map.update(seen, next, [turn], fn [h | rest] -> [turn, h] end), next}
+           next = case Map.get(seen, last, [0]) do
+             [a, b] -> a - b
+             _ -> 0
+           end
+           {Map.update(seen, next, [turn], fn [h | _] -> [turn, h] end), next}
          end
        )
     |> elem(1)
