@@ -15,16 +15,12 @@ defmodule AdventOfCode.Day11 do
   end
 
   defp parse(list), do: Map.new(
-    Enum.map(
-      list,
-      fn {line, index} ->
-        seats = Enum.map(
-          Enum.with_index(String.graphemes(line)),
-          fn {cell, col} -> if cell == "L", do: %Seat{x: col, y: index}, else: nil end
-        )
-        {index, Enum.filter(seats, &(&1 != nil))}
-      end
-    )
+    list,
+    fn {line, index} ->
+      Enum.with_index(String.graphemes(line))
+      |> Enum.flat_map(fn {cell, col} -> if cell == "L", do: [%Seat{x: col, y: index}], else: [] end)
+      |> (&({index, &1})).()
+    end
   )
 
   defp update(seat_map, threshold), do: fn {row, row_seats} ->
@@ -37,10 +33,8 @@ defmodule AdventOfCode.Day11 do
           fn {x, y}, acc ->
             case Enum.find(Map.get(seat_map.by_row, y, []), &(&1.x == x)) do
               nil -> {:cont, acc}
-              s when seat.empty? and not s.empty? -> {:halt, threshold}
-              s when seat.empty? == s.empty? and acc + 1 == threshold -> {:halt, threshold}
-              s when not s.empty? -> {:cont, acc + 1}
-              s when s.empty? -> {:cont, acc}
+              s when (not s.empty?) and (seat.empty? or acc + 1 == threshold) -> {:halt, threshold}
+              s -> {:cont, acc + (if s.empty?, do: 0, else: 1)}
             end
           end
         )
@@ -55,19 +49,11 @@ defmodule AdventOfCode.Day11 do
     {row, updated}
   end
 
-  defp process(list, neighbors, threshold) do
-    process = &(SeatMap.new(Map.new(&1.by_row, update(&1, threshold)), &1.neighbors))
-    Stream.unfold(
-      SeatMap.new(parse(list), neighbors),
-      fn current ->
-        next = process.(current)
-        if next == current, do: nil, else: {current, next}
-      end
-    )
-    |> Enum.at(-1)
-    |> (&(process.(&1).by_row)).()
-    |> Enum.reduce(0, fn {_, row_seats}, acc -> acc + Enum.count(row_seats, &(&1 != nil && !&1.empty?)) end)
-  end
+  defp process(list, neighbors, threshold), do:
+    SeatMap.new(parse(list), neighbors)
+    |> Stream.unfold(&({&1, SeatMap.new(Map.new(&1.by_row, update(&1, threshold)), &1.neighbors)}))
+    |> Enum.reduce_while(nil, &(if &1 == &2, do: {:halt, &1.by_row}, else: {:cont, &1}))
+    |> Enum.reduce(0, fn {_, row_seats}, acc -> acc + Enum.count(row_seats, &(!&1.empty?)) end)
 
   @immediate [{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}]
 
