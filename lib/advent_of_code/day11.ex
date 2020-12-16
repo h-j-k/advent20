@@ -61,10 +61,6 @@ defmodule AdventOfCode.Day11 do
     {{seat.x, seat.y}, Enum.map(@immediate, fn {x, y} -> {seat.x + x, seat.y + y} end)}
   end
 
-  defp sign(x) when x < 0, do: -1
-  defp sign(x) when x == 0, do: 0
-  defp sign(x) when x > 0, do: 1
-
   defp nearby(seats, finder), do: Enum.map(
     case Enum.find_index(seats, finder) do
       0 -> [Enum.at(seats, 1)]
@@ -75,8 +71,9 @@ defmodule AdventOfCode.Day11 do
 
   defp part_two_neighbors(by_row), do: fn seat ->
     filter = &(seat.y != &1.y && (seat.x == &1.x || abs(seat.x - &1.x) == abs(seat.y - &1.y)))
+    key = &(if &1 == 0, do: 0, else: (if &1 < 0, do: -1, else: 1))
     Enum.flat_map(by_row, fn {_, r} -> Enum.filter(r, filter) end)
-    |> Enum.group_by(&(sign((seat.x - &1.x) * (seat.y - &1.y))))
+    |> Enum.group_by(&(key.((seat.x - &1.x) * (seat.y - &1.y))))
     |> Enum.flat_map(fn {_, p} -> nearby(Enum.sort_by([seat | p], &(&1.y)), &(seat.y == &1.y)) end)
     |> (fn positions -> {{seat.x, seat.y}, positions ++ nearby(by_row[seat.y], &(seat.x == &1.x))} end).()
   end
