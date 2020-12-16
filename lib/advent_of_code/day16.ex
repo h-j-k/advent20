@@ -4,18 +4,16 @@ defmodule AdventOfCode.Day16 do
   defp parse_rules(rules), do: Map.new(
     rules,
     fn rule ->
-      convert = fn x1, x2 -> String.to_integer(x1)..String.to_integer(x2) end
+      map = fn x1, x2 -> String.to_integer(x1)..String.to_integer(x2) end
       [_, key, a1, a2, b1, b2] = Regex.run(~r/^(.*): (\d+)-(\d+) or (\d+)-(\d+)$/, rule)
-      {key, fn x -> x in convert.(a1, a2) || x in convert.(b1, b2) end}
+      {key, fn x -> x in map.(a1, a2) || x in map.(b1, b2) end}
     end
   )
 
-  defp convert(group), do:
-    Enum.map(Enum.drop(group, 1), fn line -> Enum.map(String.split(line, ","), &String.to_integer/1) end)
-
   defp parse(input) do
+    map = fn group -> Enum.map(tl(group), fn t -> Enum.map(String.split(t, ","), &String.to_integer/1) end) end
     [rules, own, nearby] = input
-    {parse_rules(rules), hd(convert(own)), convert(nearby)}
+    {parse_rules(rules), hd(map.(own)), map.(nearby)}
   end
 
   defp process(input) do
@@ -24,7 +22,7 @@ defmodule AdventOfCode.Day16 do
       nearby,
       {nil, nil, []},
       fn ticket, {_, _, tickets} ->
-        invalid = Enum.reject(ticket, &(Enum.any?(rules, fn {_, checker} -> checker.(&1) end)))
+        invalid = Enum.reject(ticket, &(Enum.any?(rules, fn {_, valid?} -> valid?.(&1) end)))
         {rules, own, [{ticket, invalid} | tickets]}
       end
     )
@@ -39,19 +37,15 @@ defmodule AdventOfCode.Day16 do
     {rules, own, nearby} = process(input)
     Enum.filter(nearby, &(elem(&1, 1) == []))
     |> Enum.map(fn {ticket, _} -> Map.new(Enum.with_index(ticket), fn {n, index} -> {index, [n]} end) end)
-    |> Enum.reduce(fn x, acc -> Map.merge(acc, x, fn _, v1, v2 -> v1 ++ v2 end) end)
+    |> Enum.reduce(&(Map.merge(&1, &2, fn _, v1, v2 -> v1 ++ v2 end)))
     |> Enum.map(
          fn {col, values} ->
-           matched = Enum.filter(rules, fn {_, checker} -> Enum.all?(values, &(checker.(&1))) end)
-           {col, Enum.map(matched, &(elem(&1, 0)))}
+           {col, Enum.map(Enum.filter(rules, fn {_, valid?} -> Enum.all?(values, valid?) end), &(elem(&1, 0)))}
          end
        )
     |> Enum.sort_by(&(length(elem(&1, 1))))
-    |> Enum.reduce(
-         Map.new(),
-         fn {col, matches}, acc -> Map.put(acc, hd(matches -- Map.keys(acc)), col) end
-       )
+    |> Enum.reduce(Map.new(), fn {col, matches}, acc -> Map.put(acc, hd(matches -- Map.keys(acc)), col) end)
     |> Enum.filter(fn {key, _} -> String.starts_with?(key, "departure") end)
-    |> Enum.reduce(1, fn {key, col}, acc -> Enum.at(own, col) * acc end)
+    |> Enum.reduce(1, fn {_, col}, acc -> Enum.at(own, col) * acc end)
   end
 end
