@@ -13,28 +13,28 @@ defmodule AdventOfCode.Day17 do
     end
   )
 
-  defp nearby(cubes, cube), do: Enum.count(
-    cubes,
+  defp nearby(space, cube), do: Enum.count(
+    space,
     &(&1 != cube && Enum.all?(Enum.zip(Tuple.to_list(&1), Tuple.to_list(cube)), fn {a, b} -> abs(a - b) <= 1 end))
   )
 
-  defp expansion(n), do: fn point ->
+  defp expand(), do: fn point ->
+    list = Tuple.to_list(point)
     Enum.reduce(
-      1..n,
-      &([List.to_tuple(Enum.map(Enum.zip(Tuple.to_list(point), &1), fn {p, d} -> p + d end))]),
+      1..length(list),
+      &([List.to_tuple(Enum.map(Enum.zip(list, &1), fn {p, d} -> p + d end))]),
       fn _, mapper -> &(Enum.flat_map(-1..1, fn d -> mapper.([d | &1]) end)) end
     ).([])
   end
 
-  defp cycle(space, n), do: MapSet.new(
-    Enum.filter(flattened_set(space, expansion(n)), &(!(&1 in space) && nearby(space, &1) == 3))
+  defp cycle(space), do: MapSet.new(
+    Enum.filter(flattened_set(space, expand()), &(!(&1 in space) && nearby(space, &1) == 3))
     ++ Enum.filter(space, &(nearby(space, &1) in 2..3))
   )
 
-  defp process(input, to_cube, n), do:
-    Enum.count(Enum.reduce(1..6, parse(input, to_cube), fn _, last -> cycle(last, n) end))
+  defp process(start), do: Enum.count(Enum.reduce(1..6, start, fn _, space -> cycle(space) end))
 
-  def part1(input), do: process(input, &({&1, &2, 0}), 3)
+  def part1(input), do: process(parse(input, &({&1, &2, 0})))
 
-  def part2(input), do: process(input, &({&1, &2, 0, 0}), 4)
+  def part2(input), do: process(parse(input, &({&1, &2, 0, 0})))
 end
