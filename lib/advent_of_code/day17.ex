@@ -13,39 +13,16 @@ defmodule AdventOfCode.Day17 do
     end
   )
 
-  defp neighbor?(cube, other) do
+  defp neighbor?(cube, other), do:
     cube != other && Enum.all?(Enum.zip(Tuple.to_list(cube), Tuple.to_list(other)), fn {a, b} -> abs(a - b) <= 1 end)
-  end
 
-  defp part1_expansion({x0, y0, z0}) do
-    Enum.flat_map(
-      -1..1,
-      fn x ->
-        Enum.flat_map(
-          -1..1,
-          fn y -> Enum.map(-1..1, fn z -> {x0 + x, y0 + y, z0 + z} end)
-          end
-        )
-      end
-    ) -- [{x0, y0, z0}]
-  end
+  defp expand(mapper), do: fn acc -> Enum.flat_map(-1..1, &(mapper.([&1 | acc]))) end
 
-  defp part2_expansion({x0, y0, z0, w0}) do
-    Enum.flat_map(
-      -1..1,
-      fn x ->
-        Enum.flat_map(
-          -1..1,
-          fn y ->
-            Enum.flat_map(
-              -1..1,
-              fn z -> Enum.map(-1..1, fn w -> {x0 + x, y0 + y, z0 + z, w0 + w} end) end
-            )
-          end
-        )
-      end
-    ) -- [{x0, y0, z0, w0}]
-  end
+  defp part1_expansion({x0, y0, z0}), do:
+    expand(expand(expand(fn [z, y, x] -> [{x0 + x, y0 + y, z0 + z}] end))).([])
+
+  defp part2_expansion({x0, y0, z0, w0}), do:
+    expand(expand(expand(expand(fn [w, z, y, x] -> [{x0 + x, y0 + y, z0 + z, w0 + w}] end)))).([])
 
   defp process(cubes, expansion) do
     still_active = Enum.map(cubes, fn cube -> {cube, Enum.filter(cubes, &(neighbor?(cube, &1)))} end)
@@ -58,9 +35,8 @@ defmodule AdventOfCode.Day17 do
     MapSet.new(still_active ++ new_active)
   end
 
-  defp process(input, to_cube, expansion) do
-    Enum.count(Enum.reduce(1..6, parse(input, to_cube), fn _, prev -> process(prev, expansion) end))
-  end
+  defp process(input, to_cube, expansion), do:
+    Enum.count(Enum.reduce(1..6, parse(input, to_cube), fn _, last -> process(last, expansion) end))
 
   def part1(input), do: process(input, &({&1, &2, 0}), &part1_expansion/1)
 
