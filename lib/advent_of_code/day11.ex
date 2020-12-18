@@ -14,15 +14,6 @@ defmodule AdventOfCode.Day11 do
     def new(by_row, neighbors) when is_map(neighbors), do: %SeatMap{by_row: by_row, neighbors: neighbors}
   end
 
-  defp parse(list), do: Map.new(
-    list,
-    fn {line, index} ->
-      Enum.with_index(String.graphemes(line))
-      |> Enum.flat_map(fn {cell, col} -> if cell == "L", do: [%Seat{x: col, y: index}], else: [] end)
-      |> (&({index, &1})).()
-    end
-  )
-
   defp update(seat_map, threshold), do: fn {row, row_seats} ->
     updated = Enum.map(
       row_seats,
@@ -50,16 +41,12 @@ defmodule AdventOfCode.Day11 do
   end
 
   defp process(list, neighbors, threshold), do:
-    SeatMap.new(parse(list), neighbors)
+    SeatMap.new(AdventOfCode.from(list, "L", &(%Seat{x: &1, y: &2})), neighbors)
     |> Stream.unfold(&({&1, SeatMap.new(Map.new(&1.by_row, update(&1, threshold)), &1.neighbors)}))
     |> Enum.reduce_while(nil, &(if &1 == &2, do: {:halt, &1.by_row}, else: {:cont, &1}))
     |> Enum.reduce(0, fn {_, row_seats}, acc -> acc + Enum.count(row_seats, &(!&1.empty?)) end)
 
-  @immediate [{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}]
-
-  defp part_one_neighbors(_), do: fn seat ->
-    {{seat.x, seat.y}, Enum.map(@immediate, fn {x, y} -> {seat.x + x, seat.y + y} end)}
-  end
+  defp part_one_neighbors(_), do: fn seat -> AdventOfCode.expand().({seat.x, seat.y}) end
 
   defp nearby(seats, finder), do: Enum.map(
     case Enum.find_index(seats, finder) do
