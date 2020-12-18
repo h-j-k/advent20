@@ -1,16 +1,14 @@
 defmodule AdventOfCode do
-  @moduledoc """
-  For Advent of Code 2020
-  """
+  @moduledoc "For Advent of Code 2020"
 
   def count_chars(string), do: Enum.frequencies(String.graphemes(string))
 
   def from(list, target, mapper), do: Map.new(
     list,
-    fn {line, index} ->
+    fn {line, y} ->
       Enum.with_index(String.graphemes(line))
-      |> Enum.flat_map(fn {cell, col} -> if cell == target, do: [mapper.(col, index)], else: [] end)
-      |> (&({index, &1})).()
+      |> Enum.flat_map(fn {cell, x} -> if cell == target, do: [mapper.(x, y)], else: [] end)
+      |> (&({y, &1})).()
     end
   )
 
