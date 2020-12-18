@@ -25,11 +25,11 @@ defmodule AdventOfCode.Day17 do
     ).([]) -- [point]
   end
 
-  defp cycle(space), do: MapSet.new(
+  defp cycle(_, space), do: MapSet.new(
     Enum.filter(flattened_set(space, expand()), nearby?(space, [3])) ++ Enum.filter(space, nearby?(space, 2..3))
   )
 
-  defp process(start), do: Enum.count(Enum.reduce(1..6, start, fn _, space -> cycle(space) end))
+  defp process(start), do: Enum.count(Enum.reduce(1..6, start, &cycle/2))
 
   def part1(input), do: process(parse(input, &([&1, &2, 0])))
 
