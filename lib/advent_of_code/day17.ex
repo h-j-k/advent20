@@ -13,8 +13,8 @@ defmodule AdventOfCode.Day17 do
     end
   )
 
-  def nearby?(space, size), do: fn cube ->
-    Enum.count(space, &(&1 != cube && Enum.all?(Enum.zip(&1, cube), fn {a, b} -> abs(a - b) <= 1 end))) in size
+  def nearby?(active, size), do: fn cube ->
+    Enum.count(active, &(&1 != cube && Enum.all?(Enum.zip(&1, cube), fn {a, b} -> abs(a - b) <= 1 end))) in size
   end
 
   defp expand(), do: fn point ->
@@ -25,8 +25,8 @@ defmodule AdventOfCode.Day17 do
     ).([]) -- [point]
   end
 
-  defp cycle(_, space), do: MapSet.new(
-    Enum.filter(flattened_set(space, expand()), nearby?(space, [3])) ++ Enum.filter(space, nearby?(space, 2..3))
+  defp cycle(_, active), do: MapSet.new(
+    Enum.filter(flattened_set(active, expand()), nearby?(active, [3])) ++ Enum.filter(active, nearby?(active, 2..3))
   )
 
   defp process(start), do: Enum.count(Enum.reduce(1..6, start, &cycle/2))
