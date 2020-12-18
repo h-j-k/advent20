@@ -1,32 +1,38 @@
 defmodule AdventOfCode.Day18 do
   @moduledoc "Day 18"
 
-  defmodule Step do
-    defstruct x: nil, op: nil
-
-    def take(%Step{x: nil, op: _}, token) when is_integer(token), do: %Step{x: token}
-    def take(%Step{x: x, op: op}, token) when is_integer(token), do: %Step{x: op.(x, token)}
-    def take(step, "+"), do: %{step | op: &+/2}
-    def take(step, "*"), do: %{step | op: &*/2}
-    def take(%Step{x: _, op: nil}, last) when is_struct(last), do: last
-    def take(%Step{x: x, op: op}, last) when is_struct(last), do: %Step{x: op.(x, last.x)}
+  defp apply_module(ast, op_module) do
+    quote do
+      import Kernel, except: [&&: 2, &&&: 2, |||: 2]
+      import unquote(op_module)
+      unquote(ast)
+    end
   end
 
-  defp parse(line), do: Enum.reduce(
-    String.graphemes(String.replace(line, " ", "")),
-    [%Step{}],
-    fn v, [step | rest] ->
-      case (if Regex.match?(~r/^\d+$/, v), do: String.to_integer(v), else: v) do
-        "(" -> [%Step{}, step | rest]
-        ")" -> [Step.take(hd(rest), step) | tl(rest)]
-        token -> [Step.take(step, token) | rest]
-      end
+  defp process(input, op_module) do
+    mapper = fn line ->
+      op_module.replacements
+      |> Enum.reduce(line, fn {from, to}, acc -> String.replace(acc, from, to) end)
+      |> Code.string_to_quoted!()
+      |> apply_module(op_module)
+      |> (&(elem(Code.eval_quoted(&1), 0))).()
     end
-  )
+    Enum.sum(Enum.map(input, mapper))
+  end
 
-  defp process(line), do: hd(parse(line)).x
+  defmodule PartOneOperators do
+    def replacements, do: %{"+" => "&&", "*" => "&&&"}
+    def a && b, do: a + b
+    def a &&& b, do: a * b
+  end
 
-  def part1(input), do: Enum.sum(Enum.map(input, &process/1))
+  defmodule PartTwoOperators do
+    def replacements, do: %{"+" => "&&", "*" => "|||"}
+    def a && b, do: a + b
+    def a ||| b, do: a * b
+  end
 
-  def part2(_input), do: 0
+  def part1(input), do: process(input, PartOneOperators)
+
+  def part2(input), do: process(input, PartTwoOperators)
 end
