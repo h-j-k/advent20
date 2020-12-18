@@ -15,29 +15,22 @@ defmodule AdventOfCode.Day11 do
   end
 
   defp update(seat_map, threshold), do: fn {row, row_seats} ->
-    updated = Enum.map(
-      row_seats,
-      fn seat ->
-        occupied = Enum.reduce_while(
-          seat_map.neighbors[{seat.x, seat.y}],
-          0,
-          fn {x, y}, acc ->
-            case Enum.find(Map.get(seat_map.by_row, y, []), &(&1.x == x)) do
-              nil -> {:cont, acc}
-              s when (not s.empty?) and (seat.empty? or acc + 1 == threshold) -> {:halt, threshold}
-              s -> {:cont, acc + (if s.empty?, do: 0, else: 1)}
-            end
+    mapper = fn seat ->
+      Enum.reduce_while(
+        seat_map.neighbors[{seat.x, seat.y}],
+        0,
+        fn {x, y}, acc ->
+          case Enum.find(Map.get(seat_map.by_row, y, []), &(&1.x == x)) do
+            nil -> {:cont, acc}
+            s when (not s.empty?) and (seat.empty? or acc + 1 == threshold) -> {:halt, threshold}
+            s -> {:cont, acc + (if s.empty?, do: 0, else: 1)}
           end
-        )
-        is_empty = case occupied do
-          0 when seat.empty? -> false
-          n when n >= threshold and not seat.empty? -> true
-          _ -> seat.empty?
         end
-        %Seat{x: seat.x, y: seat.y, empty?: is_empty}
-      end
-    )
-    {row, updated}
+      )
+      |> (&(((&1 == 0 && seat.empty?) || (&1 >= threshold && !seat.empty?)) != seat.empty?)).()
+      |> (&(%Seat{x: seat.x, y: seat.y, empty?: &1})).()
+    end
+    {row, Enum.map(row_seats, mapper)}
   end
 
   defp process(list, neighbors, threshold), do:
