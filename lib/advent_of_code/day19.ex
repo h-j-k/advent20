@@ -11,18 +11,18 @@ defmodule AdventOfCode.Day19 do
   defp get(rules, index) when is_integer(index), do:
     MapSet.new(Enum.flat_map(rules[index], &(if is_binary(&1), do: [&1], else: get(rules, &1))))
 
-  defp convert(x, delimiter, mapper), do: Enum.map(String.split(x, delimiter), mapper)
+  defp convert(x, splitter, mapper), do: Enum.map(String.split(x, splitter), mapper)
 
   defp parse(rules), do: Map.new(
     rules,
     fn line ->
-      [_, key, rule] = Regex.run(~r/^(\d+): (.*)$/, line)
+      [_, k, v] = Regex.run(~r/^(\d+): (.*)$/, line)
       ab = ~r/^"([ab])"$/
-      value = cond do
-        Regex.match?(ab, rule) -> (&(tl(&1))).(Regex.run(ab, rule))
-        true -> convert(rule, " | ", fn x -> convert(x, " ", &String.to_integer/1) end)
+      rule = cond do
+        Regex.match?(ab, v) -> (&(tl(&1))).(Regex.run(ab, v))
+        true -> convert(v, " | ", fn x -> convert(x, " ", &String.to_integer/1) end)
       end
-      {String.to_integer(key), value}
+      {String.to_integer(k), rule}
     end
   )
 
@@ -33,26 +33,19 @@ defmodule AdventOfCode.Day19 do
   #  11: 42 31
   #  ````
   #
-  #  In part one, we are checking there's only 2 groups of 42 and 1 group of 31.
+  #  In part one, there's only 2 groups of 42 and 1 group of 31.
   #  In part two, the overrides are:
   #  ````
   #  8: 42 | 42 8
   #  11: 42 31 | 42 11 31
   #  ````
   #
-  #  In other words, at least 2 groups of 42 and 1 group of 31.
-  #  Also, each group has 8 characters only, and messages are in multiple of 8 characters.
-  #  Logic: Chunk each message into groups, and check counts of group 42 and 31.
+  #  i.e. at least 2 groups of 42 and 1 group of 31.
+  #  Each group has 8 characters, and messages are in multiples of that.
   defp process(input, validator) do
     rules = (fn r -> Map.new([42, 31], &({&1, get(r, &1)})) end).(parse(hd(input)))
-    Enum.count(
-      Enum.at(input, 1),
-      fn message ->
-        (for <<x :: binary - 8 <- message>>, do: x)
-        |> Enum.map(&(if &1 in rules[42], do: 42, else: (if &1 in rules[31], do: 31, else: -1)))
-        |> (&(validator.(&1))).()
-      end
-    )
+    mapper = fn group -> Enum.find_value(rules, fn {r, x} -> if group in x, do: r, else: nil end) end
+    Enum.count(Enum.at(input, 1), &(validator.(Enum.map((for <<x :: binary - 8 <- &1>>, do: x), mapper))))
   end
 
   def part1(input), do: process(input, &(&1 == [42, 42, 31]))
