@@ -57,5 +57,11 @@ defmodule AdventOfCode.Day19 do
 
   def part1(input), do: process(input, &(&1 == [42, 42, 31]))
 
-  def part2(input), do: 0
+  def part2(input), do: process(
+    input,
+    fn groups ->
+      Enum.dedup(groups) == [42, 31]
+      && (fn {a, b} -> Enum.count(a) - Enum.count(b) >= 1 end).(Enum.split_while(groups, &(&1 == 42)))
+    end
+  )
 end
