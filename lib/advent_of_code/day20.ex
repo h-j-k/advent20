@@ -83,7 +83,7 @@ defmodule AdventOfCode.Day20 do
     )
   end
 
-  defp options(tile) do
+  defp options(tile) when is_struct(tile) do
     flip_ew = fn content -> Enum.map(content, &String.reverse/1) end
     flip_ns = fn content -> Enum.reverse(content) end
     rotate = fn content ->
@@ -105,40 +105,72 @@ defmodule AdventOfCode.Day20 do
     ]
   end
 
-  defp match(first, second) do
-    from_first = fn content -> Enum.join(Enum.map(content, &String.last/1)) end
-    from_second = fn content -> Enum.join(Enum.map(content, &String.first/1)) end
+  defp options(content) when is_list(content), do: [content, Enum.reverse(content)]
+
+  defp match_tile(first, second) do
+    right = fn content -> Enum.join(Enum.map(content, &String.last/1)) end
+    left = fn content -> Enum.join(Enum.map(content, &String.first/1)) end
     a = if Enum.count(first) == 1,
            do: hd(first),
-           else: Enum.find(first, fn x -> Enum.any?(second, &(from_first.(x) == from_second.(&1))) end)
-    b = Enum.find(second, fn x -> from_first.(a) == from_second.(x) end)
+           else: Enum.find(first, fn x -> Enum.any?(second, &(right.(x) == left.(&1))) end)
+    b = Enum.find(second, fn x -> right.(a) == left.(x) end)
     Enum.map(0..(length(a) - 1), fn i -> Enum.at(a, i) <> Enum.at(b, i) end)
   end
 
-  defp to_sea(grid) do
-    sea = Enum.reduce(
-      grid,
+  defp match_row(first, second) do
+    bottom = fn content -> Enum.at(content, -1) end
+    top = fn content -> hd(content) end
+    a = if Enum.count(first) == 1,
+           do: hd(first),
+           else: Enum.find(first, fn x -> Enum.any?(second, &(bottom.(x) == top.(&1))) end)
+    b = Enum.find(second, fn x -> bottom.(a) == top.(x) end)
+    Enum.concat(a, b)
+  end
+
+  defp to_sea(input) do
+    grid = to_grid(input)
+    size = length(hd(hd(grid)).content)
+    Enum.reduce(
+      Enum.with_index(grid),
       [],
-      fn row, sea ->
+      fn {row, y}, sea ->
         row_content = Enum.reduce(
           Enum.with_index(row),
           [],
-          fn {tile, x}, content ->
-            case x do
-              1 -> match(options(Enum.at(row, 0)), options(tile))
-              n when n > 1 -> match([content], options(tile))
-              _ -> content
-            end
+          fn
+            {tile, 1}, _ -> match_tile(options(hd(row)), options(tile))
+            {tile, n}, content when n > 1 -> match_tile([content], options(tile))
+            _, content -> content
           end
         )
-        Enum.concat(sea, Enum.reverse(row_content))
+        case y do
+          1 -> match_row(options(sea), options(row_content))
+          n when n > 1 -> match_row([sea], options(row_content))
+          _ -> row_content
+        end
       end
     )
-    sea
+    |> Enum.with_index
+    |> Enum.reduce(
+         [],
+         fn {line, r}, acc ->
+           if rem(r, size) == 0 || rem(r + 1, size) == 0 do
+             acc
+           else
+             mod = String.graphemes(line)
+                   |> Enum.with_index
+                   |> Enum.filter(fn {_, c} -> rem(c, size) != 0 && rem(c + 1, size) != 0 end)
+                   |> Enum.map(&(elem(&1, 0)))
+                   |> Enum.join
+             [mod | acc]
+           end
+         end
+       )
+    |> Enum.reverse
   end
 
   def part2(input) do
-    sea = to_sea(to_grid(input))
+    sea = to_sea(input)
     Enum.each(sea, &(IO.puts(inspect(&1))))
     0
   end
