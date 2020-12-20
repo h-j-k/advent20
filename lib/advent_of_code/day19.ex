@@ -26,22 +26,13 @@ defmodule AdventOfCode.Day19 do
     end
   )
 
-  #  Given:
-  #  ````
-  #  0: 8 11
+  #  Given groups of 8 characters and rule 0: 8 11
+  #  Part 1: 2 groups of 42 and 1 group of 31:
   #  8: 42
   #  11: 42 31
-  #  ````
-  #
-  #  In part one, there's only 2 groups of 42 and 1 group of 31.
-  #  In part two, the overrides are:
-  #  ````
+  #  Part 2: at least 2 groups of 42 and 1 group of 31:
   #  8: 42 | 42 8
   #  11: 42 31 | 42 11 31
-  #  ````
-  #
-  #  i.e. at least 2 groups of 42 and 1 group of 31.
-  #  Each group has 8 characters, and messages are in multiples of that.
   defp process(input, validator) do
     rules = (fn r -> Map.new([42, 31], &({&1, get(r, &1)})) end).(parse(hd(input)))
     mapper = fn group -> Enum.find_value(rules, fn {r, x} -> if group in x, do: r, else: nil end) end
@@ -50,11 +41,6 @@ defmodule AdventOfCode.Day19 do
 
   def part1(input), do: process(input, &(&1 == [42, 42, 31]))
 
-  def part2(input), do: process(
-    input,
-    fn groups ->
-      Enum.dedup(groups) == [42, 31]
-      && (fn {a, b} -> Enum.count(a) - Enum.count(b) >= 1 end).(Enum.split_while(groups, &(&1 == 42)))
-    end
-  )
+  def part2(input), do:
+    process(input, &(Enum.dedup(&1) == [42, 31] && (fn r -> r[42] - r[31] >= 1 end).(Enum.frequencies(&1))))
 end
