@@ -163,17 +163,40 @@ defmodule AdventOfCode.Day20 do
        )
     |> Enum.reverse
 
+  defp find(line, regex), do: MapSet.new(
+    Enum.flat_map(Regex.scan(regex, line, return: :index), &(&1)),
+    &(elem(&1, 0))
+  )
+
+  @shapes [~r/..................#./, ~r/#....##....##....###/, ~r/.#..#..#..#..#..#.../]
+
   defp count_monsters_for(sea) do
-  end
-
-  defp count_monsters_all(sea) do
-    Enum.map(
-      options(Tile.new(0, sea)),
-      fn position ->
-
+    Enum.reduce(
+      0..(length(sea) - 3),
+      0,
+      fn x, acc ->
+        acc + Enum.count(
+          Enum.reduce(
+            Enum.map(
+              Enum.with_index(Enum.slice(sea, x, 3)),
+              fn {line, index} -> find(line, Enum.at(@shapes, index)) end
+            ),
+            &(MapSet.intersection(&1, &2))
+          )
+        )
       end
     )
   end
+
+  defp count_monsters_all(all_sea), do: Enum.find_value(
+    all_sea,
+    fn position ->
+      case count_monsters_for(position) do
+        0 -> nil
+        x -> x
+      end
+    end
+  )
 
   def part1(input), do:
     process_tiles(input)
@@ -183,14 +206,9 @@ defmodule AdventOfCode.Day20 do
   def part2(input) do
     grid = to_grid(input)
     sea = to_sea(grid, length(hd(hd(grid)).content))
-    Enum.each(
-      options(Tile.new(0, sea)),
-      fn option ->
-        IO.puts("================================================================================")
-        IO.puts("================================================================================")
-        Enum.each(option, &(IO.puts(&1)))
-      end
-    )
-    0
+    count_monsters = count_monsters_all(options(Tile.new(0, sea)))
+    total = Enum.sum(Enum.map(sea, &(Enum.count(String.graphemes(&1), fn x -> x == "#" end))))
+    Enum.each(sea, &(IO.puts(inspect(&1))))
+    total - (count_monsters * 15)
   end
 end
