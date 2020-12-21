@@ -31,11 +31,6 @@ defmodule AdventOfCode.Day20 do
     Map.new(tiles, fn tile -> {tile, MapSet.new(Enum.filter(tiles, &(Tile.align?(tile, &1))))} end)
   end
 
-  def part1(input), do:
-    process_tiles(input)
-    |> Enum.filter(fn {_, matches} -> Enum.count(matches) == 2 end)
-    |> Enum.reduce(1, &(elem(&1, 0).id * &2))
-
   defp to_row(tile, row, size, by_links, tiles, last_row) do
     has_side? = fn t, n -> Enum.any?(by_links[n], &(&1 == t)) end
     Enum.reverse(
@@ -127,9 +122,7 @@ defmodule AdventOfCode.Day20 do
     Enum.concat(a, b)
   end
 
-  defp to_sea(input) do
-    grid = to_grid(input)
-    size = length(hd(hd(grid)).content)
+  defp to_sea(grid, size), do:
     Enum.reduce(
       Enum.with_index(grid),
       [],
@@ -159,7 +152,9 @@ defmodule AdventOfCode.Day20 do
            else
              mod = String.graphemes(line)
                    |> Enum.with_index
-                   |> Enum.filter(fn {_, c} -> rem(c, size) != 0 && rem(c + 1, size) != 0 end)
+                   |> Enum.filter(
+                        fn {_, c} -> rem(c, size) != 0 && rem(c + 1, size) != 0 end
+                      )
                    |> Enum.map(&(elem(&1, 0)))
                    |> Enum.join
              [mod | acc]
@@ -167,11 +162,35 @@ defmodule AdventOfCode.Day20 do
          end
        )
     |> Enum.reverse
+
+  defp count_monsters_for(sea) do
   end
 
+  defp count_monsters_all(sea) do
+    Enum.map(
+      options(Tile.new(0, sea)),
+      fn position ->
+
+      end
+    )
+  end
+
+  def part1(input), do:
+    process_tiles(input)
+    |> Enum.filter(fn {_, matches} -> Enum.count(matches) == 2 end)
+    |> Enum.reduce(1, &(elem(&1, 0).id * &2))
+
   def part2(input) do
-    sea = to_sea(input)
-    Enum.each(sea, &(IO.puts(inspect(&1))))
+    grid = to_grid(input)
+    sea = to_sea(grid, length(hd(hd(grid)).content))
+    Enum.each(
+      options(Tile.new(0, sea)),
+      fn option ->
+        IO.puts("================================================================================")
+        IO.puts("================================================================================")
+        Enum.each(option, &(IO.puts(&1)))
+      end
+    )
     0
   end
 end
