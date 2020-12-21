@@ -9,16 +9,12 @@ defmodule AdventOfCode.Day20 do
         hd(content),
         Enum.join(Enum.map(content, &String.first/1)),
         Enum.join(Enum.map(content, &String.last/1)),
-        hd(Enum.reverse(content))
+        Enum.at(content, -1)
       ]
-      %Tile{id: id, content: content, sides: sides}
+      %Tile{id: id, content: content, sides: Enum.flat_map(sides, &([&1, String.reverse(&1)]))}
     end
 
-    def align?(tile, other) do
-      tile_sides = Enum.flat_map(tile.sides, &([&1, String.reverse(&1)]))
-      other_sides = Enum.flat_map(other.sides, &([&1, String.reverse(&1)]))
-      tile.id != other.id && Enum.any?(tile_sides, &(&1 in other_sides))
-    end
+    def align?(tile, other), do: tile.id != other.id && Enum.any?(tile.sides, &(&1 in other.sides))
   end
 
   defp parse_tile(tile) do
@@ -31,33 +27,28 @@ defmodule AdventOfCode.Day20 do
     Map.new(tiles, fn tile -> {tile, MapSet.new(Enum.filter(tiles, &(Tile.align?(tile, &1))))} end)
   end
 
-  defp to_row(tile, row, size, by_links, tiles, last_row) do
-    has_side? = fn t, n -> Enum.any?(by_links[n], &(&1 == t)) end
-    Enum.reverse(
-      Enum.reduce(
-        1..(size - 1),
-        [tile],
-        fn col, [last | rest] ->
-          next = cond do
-            has_side?.(last, 2) ->
-              if row == 0,
-                 do: Enum.at(tiles[last], 0),
-                 else: Enum.find(tiles[last], &(&1 != Enum.at(last_row, 0)))
-            has_side?.(last, 3) ->
-              if row == 0 || row == size - 1,
-                 do: Enum.find(tiles[last], &(&1 != hd(rest) && !has_side?.(&1, 4))),
-                 else: Enum.find(tiles[last], &(has_side?.(&1, 4)))
-            has_side?.(last, 4) ->
-              Enum.find(
-                MapSet.intersection(tiles[last], tiles[Enum.at(last_row, col)]),
-                &(&1 != Enum.at(last_row, col - 1))
-              )
-          end
-          [next, last | rest]
+  defp to_row(tile, row, size, has_side?, tiles, last_row), do:
+    Enum.reduce(
+      1..(size - 1),
+      [tile],
+      fn col, [last | rest] ->
+        next = cond do
+          has_side?.(last, 2) ->
+            Enum.find(tiles[last], &(row == 0 || &1 != Enum.at(last_row, 0)))
+          has_side?.(last, 3) ->
+            if row == 0 || row == size - 1,
+               do: Enum.find(tiles[last], &(&1 != hd(rest) && !has_side?.(&1, 4))),
+               else: Enum.find(tiles[last], &(has_side?.(&1, 4)))
+          has_side?.(last, 4) ->
+            Enum.find(
+              MapSet.intersection(tiles[last], tiles[Enum.at(last_row, col)]),
+              &(&1 != Enum.at(last_row, col - 1))
+            )
         end
-      )
+        [next, last | rest]
+      end
     )
-  end
+    |> Enum.reverse
 
   defp to_grid(input) do
     tiles = process_tiles(input)
@@ -66,14 +57,14 @@ defmodule AdventOfCode.Day20 do
       Enum.group_by(tiles, fn {_, matches} -> Enum.count(matches) end),
       fn {n, v} -> {n, Enum.map(v, &(elem(&1, 0)))} end
     )
+    has_side? = fn t, n -> Enum.any?(by_links[n], &(&1 == t)) end
     Enum.reduce(
       1..(size - 1),
-      [to_row(hd(by_links[2]), 0, size, by_links, tiles, [])],
+      [to_row(hd(by_links[2]), 0, size, has_side?, tiles, [])],
       fn row, [last_row | rest] ->
         others = if row == 1, do: [], else: [Enum.at(hd(rest), 0)]
         tile = Enum.find(tiles[hd(last_row)], &(!(&1 in [Enum.at(last_row, 1) | others])))
-        r = to_row(tile, row, size, by_links, tiles, last_row)
-        [r, last_row | rest]
+        [to_row(tile, row, size, has_side?, tiles, last_row), last_row | rest]
       end
     )
   end
@@ -85,15 +76,16 @@ defmodule AdventOfCode.Day20 do
       size = length(content) - 1
       Enum.map(0..size, fn x -> Enum.join(Enum.map(size..0, &(String.at(Enum.at(content, &1), x)))) end)
     end
+    content = tile.content
     [
-      tile.content,
-      flip_ew.(tile.content),
-      flip_ns.(tile.content),
-      rotate.(tile.content),
-      flip_ew.(rotate.(tile.content)),
-      flip_ns.(rotate.(tile.content)),
-      rotate.(rotate.(tile.content)),
-      rotate.(rotate.(rotate.(tile.content)))
+      content,
+      flip_ew.(content),
+      flip_ns.(content),
+      rotate.(content),
+      flip_ew.(rotate.(content)),
+      flip_ns.(rotate.(content)),
+      rotate.(rotate.(content)),
+      rotate.(rotate.(rotate.(content)))
     ]
   end
 
@@ -105,7 +97,7 @@ defmodule AdventOfCode.Day20 do
     a = if Enum.count(first) == 1,
            do: hd(first),
            else: Enum.find(first, fn x -> Enum.any?(second, &(right.(x) == left.(&1))) end)
-    b = Enum.find(second, fn x -> right.(a) == left.(x) end)
+    b = Enum.find(second, &(right.(a) == left.(&1)))
     Enum.map(0..(length(a) - 1), fn i -> Enum.at(a, i) <> Enum.at(b, i) end)
   end
 
@@ -115,46 +107,43 @@ defmodule AdventOfCode.Day20 do
     a = if Enum.count(first) == 1,
            do: hd(first),
            else: Enum.find(first, fn x -> Enum.any?(second, &(bottom.(x) == top.(&1))) end)
-    Enum.concat(a, Enum.find(second, fn x -> bottom.(a) == top.(x) end))
+    Enum.concat(a, Enum.find(second, &(bottom.(a) == top.(&1))))
   end
 
-  defp to_sea(grid, size), do:
-    Enum.reduce(
-      Enum.with_index(grid),
-      [],
-      fn {row, y}, sea ->
-        row_content = Enum.reduce(
-          Enum.with_index(row),
-          [],
-          fn
-            {tile, 1}, _ -> match_tile(options(hd(row)), options(tile))
-            {tile, n}, content when n > 1 -> match_tile([content], options(tile))
-            _, content -> content
-          end
-        )
-        case y do
-          1 -> match_row(options(sea), options(row_content))
-          n when n > 1 -> match_row([sea], options(row_content))
-          _ -> row_content
+  defp to_sea(grid), do: Enum.reduce(
+    Enum.with_index(grid),
+    [],
+    fn {row, y}, sea ->
+      row_content = Enum.reduce(
+        Enum.with_index(row),
+        [],
+        fn
+          {tile, 1}, _ -> match_tile(options(hd(row)), options(tile))
+          {tile, n}, content when n > 1 -> match_tile([content], options(tile))
+          _, content -> content
         end
+      )
+      case y do
+        1 -> match_row(options(sea), options(row_content))
+        n when n > 1 -> match_row([sea], options(row_content))
+        _ -> row_content
       end
-    )
+    end
+  )
+
+  defp remove_borders(line, size) when is_binary(line), do:
+    String.graphemes(line)
     |> Enum.with_index
+    |> Enum.filter(fn {_, c} -> rem(c, size) != 0 && rem(c + 1, size) != 0 end)
+    |> Enum.map(&(elem(&1, 0)))
+    |> Enum.join
+
+  defp remove_borders(sea, size) when is_list(sea), do:
+    Enum.with_index(sea)
     |> Enum.reduce(
          [],
          fn {line, r}, acc ->
-           if rem(r, size) == 0 || rem(r + 1, size) == 0 do
-             acc
-           else
-             mod = String.graphemes(line)
-                   |> Enum.with_index
-                   |> Enum.filter(
-                        fn {_, c} -> rem(c, size) != 0 && rem(c + 1, size) != 0 end
-                      )
-                   |> Enum.map(&(elem(&1, 0)))
-                   |> Enum.join
-             [mod | acc]
-           end
+           if rem(r, size) == 0 || rem(r + 1, size) == 0, do: acc, else: [remove_borders(line, size) | acc]
          end
        )
     |> Enum.reverse
@@ -176,7 +165,8 @@ defmodule AdventOfCode.Day20 do
     |> Enum.reduce(0, &(count_monsters_in(Enum.slice(sea, &1, 3)) + &2))
     |> (&(if &1 == 0, do: nil, else: &1)).()
 
-  defp count_monsters_all(sea), do: Enum.find_value(options(Tile.new(0, sea)), &(count_monsters_for(&1)))
+  defp count_monsters_all(sea_tile), do:
+    Enum.find_value(options(sea_tile), &(count_monsters_for(&1)))
 
   defp count_fills(sea), do:
     Enum.sum(Enum.map(sea, &(Enum.count(String.graphemes(&1), fn x -> x == "#" end))))
@@ -188,7 +178,7 @@ defmodule AdventOfCode.Day20 do
 
   def part2(input) do
     grid = to_grid(input)
-    sea = to_sea(grid, length(hd(hd(grid)).content))
-    count_fills(sea) - (count_monsters_all(sea) * 15)
+    sea = remove_borders(to_sea(grid), length(hd(hd(grid)).content))
+    count_fills(sea) - (count_monsters_all(Tile.new(0, sea)) * 15)
   end
 end
