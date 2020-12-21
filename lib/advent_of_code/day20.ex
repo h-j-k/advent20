@@ -171,21 +171,27 @@ defmodule AdventOfCode.Day20 do
   @shapes [~r/..................#./, ~r/#....##....##....###/, ~r/.#..#..#..#..#..#.../]
 
   defp count_monsters_for(sea) do
-    Enum.reduce(
+    q = Enum.reduce(
       0..(length(sea) - 3),
       0,
       fn x, acc ->
-        acc + Enum.count(
-          Enum.reduce(
-            Enum.map(
-              Enum.with_index(Enum.slice(sea, x, 3)),
-              fn {line, index} -> find(line, Enum.at(@shapes, index)) end
-            ),
-            &(MapSet.intersection(&1, &2))
-          )
+        r = Enum.reduce(
+          Enum.map(
+            Enum.with_index(Enum.slice(sea, x, 3)),
+            fn {line, index} -> find(line, Enum.at(@shapes, index)) end
+          ),
+          &(MapSet.intersection(&1, &2))
         )
+        if Enum.count(r) != 0 do
+          IO.puts("Found #{Enum.count(r)} monsters at line #{x}: #{inspect(r)}")
+        end
+        acc + Enum.count(r)
       end
     )
+    if q > 0 do
+      Enum.each(sea, &(IO.puts(inspect(&1))))
+    end
+    q
   end
 
   defp count_monsters_all(all_sea), do: Enum.find_value(
@@ -207,8 +213,6 @@ defmodule AdventOfCode.Day20 do
     grid = to_grid(input)
     sea = to_sea(grid, length(hd(hd(grid)).content))
     count_monsters = count_monsters_all(options(Tile.new(0, sea)))
-    total = Enum.sum(Enum.map(sea, &(Enum.count(String.graphemes(&1), fn x -> x == "#" end))))
-    Enum.each(sea, &(IO.puts(inspect(&1))))
-    total - (count_monsters * 15)
+    Enum.sum(Enum.map(sea, &(Enum.count(String.graphemes(&1), fn x -> x == "#" end)))) - (count_monsters * 15)
   end
 end
