@@ -4,8 +4,8 @@ defmodule AdventOfCode.Day23 do
   defp parse(input), do: Enum.map(String.graphemes(input), &String.to_integer/1)
 
   defp round(0, cups, _) do
-    {tail, [_ | head]} = Enum.split_while(cups, &(&1 != 1))
-    Enum.join(Enum.map(head ++ tail, &Integer.to_string/1))
+    {tail, head} = Enum.split_while(cups, &(&1 != 1))
+    Enum.join(Enum.map(Enum.drop(head, 1) ++ tail, &Integer.to_string/1))
   end
 
   defp round(i, [current, a, b, c | rest], {min, max}) do
