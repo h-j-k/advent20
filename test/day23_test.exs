@@ -7,5 +7,6 @@ defmodule AdventOfCode.Day23Test do
 
   test "part1", do: assert part1(@input) == "82934675"
 
-  test "part2", do: assert part2(@input) == 0
+  @tag timeout: 120_000
+  test "part2", do: assert part2(@input) == 474600314018
 end
