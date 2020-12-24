@@ -18,9 +18,18 @@ defmodule AdventOfCode.Day24 do
 
   def part1(input), do: Enum.count(map_tiles(input), fn {_, black?} -> black? end)
 
-  def black?(tiles, size), do: fn tile ->
-    zipped = &(Enum.zip(Tuple.to_list(&1), Tuple.to_list(tile)))
-    Enum.count(tiles, &(&1 != tile && Enum.all?(zipped.(&1), fn {a, b} -> abs(a - b) <= 1 end))) in size
+  def nearby?({x1, y1, z1}, {x2, y2, z2}), do: abs(x1 - x2) <= 1 && abs(y1 - y2) <= 1 && abs(z1 - z2) <= 1
+
+  def black?(tiles, min..max), do: fn tile ->
+    Enum.reduce_while(
+      tiles,
+      0,
+      fn x, acc ->
+        if x != tile && nearby?(x, tile),
+           do: {(if acc + 1 > max, do: :halt, else: :cont), acc + 1},
+           else: {:cont, acc}
+      end
+    ) in min..max
   end
 
   defp expand(tiles), do:
@@ -29,7 +38,7 @@ defmodule AdventOfCode.Day24 do
   defp cycle(tiles, 0), do: Enum.count(tiles)
 
   defp cycle(tiles, i), do: cycle(
-    MapSet.new(Enum.filter(expand(tiles), black?(tiles, [2])) ++ Enum.filter(tiles, black?(tiles, 1..2))),
+    MapSet.new(Enum.filter(expand(tiles), black?(tiles, 2..2)) ++ Enum.filter(tiles, black?(tiles, 1..2))),
     i - 1
   )
 
