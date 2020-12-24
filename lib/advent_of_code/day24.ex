@@ -18,23 +18,18 @@ defmodule AdventOfCode.Day24 do
 
   def part1(input), do: Enum.count(map_tiles(input), fn {_, black?} -> black? end)
 
-  def black?(active, size), do: fn tile ->
+  def black?(tiles, size), do: fn tile ->
     zipped = &(Enum.zip(Tuple.to_list(&1), Tuple.to_list(tile)))
-    Enum.count(active, &(&1 != tile && Enum.all?(zipped.(&1), fn {a, b} -> abs(a - b) <= 1 end))) in size
+    Enum.count(tiles, &(&1 != tile && Enum.all?(zipped.(&1), fn {a, b} -> abs(a - b) <= 1 end))) in size
   end
 
-  @neighbors [:e, :w, :nw, :ne, :sw, :se]
+  defp expand(tiles), do:
+    MapSet.new(Enum.flat_map(tiles, fn tile -> Enum.map([:e, :w, :nw, :ne, :sw, :se], &(offset(&1, tile))) end))
 
   defp cycle(tiles, 0), do: Enum.count(tiles)
 
   defp cycle(tiles, i), do: cycle(
-    MapSet.new(
-      Enum.filter(
-        MapSet.new(Enum.flat_map(tiles, fn tile -> Enum.map(@neighbors, &(offset(&1, tile))) end)),
-        black?(tiles, [2])
-      )
-      ++ Enum.filter(tiles, black?(tiles, 1..2))
-    ),
+    MapSet.new(Enum.filter(expand(tiles), black?(tiles, [2])) ++ Enum.filter(tiles, black?(tiles, 1..2))),
     i - 1
   )
 
