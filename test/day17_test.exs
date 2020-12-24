@@ -7,5 +7,6 @@ defmodule AdventOfCode.Day17Test do
 
   test "part1", do: assert part1(@input) == 301
 
+  @tag timeout: :infinity
   test "part2", do: assert part2(@input) == 2424
 end

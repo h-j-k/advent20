@@ -7,5 +7,6 @@ defmodule AdventOfCode.Day15Test do
 
   test "part1", do: assert part1(@input) == 273
 
+  @tag timeout: :infinity
   test "part2", do: assert part2(@input) == 47205
 end
