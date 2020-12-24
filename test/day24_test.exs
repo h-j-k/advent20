@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Day24Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import AdventOfCode.{Day24, TestUtils}
 
@@ -7,5 +7,6 @@ defmodule AdventOfCode.Day24Test do
 
   test "part1", do: assert part1(@input) == 465
 
-  test "part2", do: assert part2(@input) == 0
+  @tag timeout: :infinity
+  test "part2", do: assert part2(@input) == 4078
 end
