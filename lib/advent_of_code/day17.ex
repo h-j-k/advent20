@@ -3,13 +3,21 @@ defmodule AdventOfCode.Day17 do
 
   defp flattened_set(enum), do: MapSet.new(Enum.flat_map(enum, &(elem(&1, 1))))
 
-  def nearby?(active, size), do: fn cube ->
+  def nearby?(active, min..max), do: fn cube ->
     zipped = &(Enum.zip(Tuple.to_list(&1), Tuple.to_list(cube)))
-    Enum.count(active, &(&1 != cube && Enum.all?(zipped.(&1), fn {a, b} -> abs(a - b) <= 1 end))) in size
+    Enum.reduce_while(
+      active,
+      0,
+      fn x, acc ->
+        if x != cube && Enum.all?(zipped.(x), fn {a, b} -> abs(a - b) <= 1 end),
+           do: {(if acc + 1 > max, do: :halt, else: :cont), acc + 1},
+           else: {:cont, acc}
+      end
+    ) in min..max
   end
 
   defp cycle(_, active), do: MapSet.new(
-    Enum.filter(flattened_set(Enum.map(active, AdventOfCode.expand())), nearby?(active, [3]))
+    Enum.filter(flattened_set(Enum.map(active, AdventOfCode.expand())), nearby?(active, 3..3))
     ++ Enum.filter(active, nearby?(active, 2..3))
   )
 
