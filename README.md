@@ -16,7 +16,7 @@ In Elixir!
 
 First, the following approach only works for square grids, i.e. 4, 9, 16, etc. tiles with 2x2, 3x3, 4x4, etc. sides.
 
-Second, Assume that the given inputs are non-ambiguous, i.e. when it comes to rotating and flipping each tile, there is only one way to align two together.
+Second, assume that the given inputs are non-ambiguous, i.e. when it comes to rotating and flipping each tile, there is only one way to align two together.
 
 With that in mind, try to visualize working backwards from the final alignment of tiles. Using the following example:
 
@@ -85,7 +85,7 @@ Consider a row-based approach to piecing the tiles back together.
 
 Let's start from the first row that has a corner tile. To get the second tile, just pick any one of its neighbors.
 
-For the third tile, after tile 2 from the example above, you know there are only two options, tile 4 or 5. Since this is still along the sides, you should look for the tile that does not have four neighbors, i.e. an inside tile. Hence, you should pick tile 5.
+For the third tile, after tile 2 from the example above, you know there are only two options, tile 4 or 5. Since this is still along the sides, you should look for the tile that does not have four neighbors, i.e. not an inside tile. Hence, you should pick tile 5.
 
 Repeat until you have aligned the number of tiles for the side. For example, stop at 4 tiles if we are given a total of 16 tiles.
 
@@ -147,17 +147,17 @@ For example, if you are modeling the tile contents as an array of strings, your 
 
     flip_horizontal: For each row of the tile's content, reverse the string
     flip_vertical: Reverse the array, keeping the string contents intact
-    rotate_clockwise: Depends on the array manipulation functions  
+    rotate_clockwise: Flip columns to rows and reversing the direction where necessary  
 
 It should not be that computationally expensive to generate all eight ways and see which is the only way that will align with the given tile/block.
 
 The last twist here is that even after all tiles within a row are aligned correctly, you need to align the rows too!
 
-Thankfully, we only need to consider whether we need to flip horizontally or vertically, i.e. no need to perform rotations.
+Thankfully, we only need to consider whether we need to flip horizontally or vertically.
 
 #### Removing the glue borders
 
-We should have the complete grid with all the 'glue' borders. This is the most trivial step, by stepping throw each row/column and discarding the glue borders.
+We should have the complete grid with all the 'glue' borders. This is a relatively trivial step, by stepping through each row/column and discarding the glue borders.
 
 #### Counting the monsters by rotating/flipping the final grid
 
