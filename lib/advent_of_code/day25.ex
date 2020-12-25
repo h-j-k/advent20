@@ -7,8 +7,5 @@ defmodule AdventOfCode.Day25 do
   defp solve(0, n, _), do: n
   defp solve(i, n, subject), do: solve(i - 1, rem(subject * n, 20201227), subject)
 
-  def part1(input) do
-    [card_public, door_public] = Enum.map(0..1, &(Enum.at(input, &1)))
-    solve(loop(1, 7, card_public), 1, door_public)
-  end
+  def part1([card_key, door_key]), do: solve(loop(1, 7, card_key), 1, door_key)
 end
