@@ -25,27 +25,25 @@ defmodule AdventOfCode.Day20 do
     Map.new(tiles, fn tile -> {tile, MapSet.new(Enum.filter(tiles, &(Tile.align?(tile, &1))))} end)
   end
 
-  defp to_row(tile, row, size, has_side?, tiles, last_row), do: Enum.reverse(
-    Enum.reduce(
-      1..(size - 1),
-      [tile],
-      fn col, [last | rest] ->
-        next = cond do
-          has_side?.(last, 2) ->
-            Enum.find(tiles[last], &(row == 0 || &1 != Enum.at(last_row, 0)))
-          has_side?.(last, 3) ->
-            if row == 0 || row == size - 1,
-               do: Enum.find(tiles[last], &(&1 != hd(rest) && !has_side?.(&1, 4))),
-               else: Enum.find(tiles[last], &(has_side?.(&1, 4)))
-          has_side?.(last, 4) ->
-            Enum.find(
-              MapSet.intersection(tiles[last], tiles[Enum.at(last_row, col)]),
-              &(&1 != Enum.at(last_row, col - 1))
-            )
-        end
-        [next, last | rest]
+  defp to_row(tile, row, size, has_side?, tiles, last_row), do: Enum.reduce(
+    1..(size - 1),
+    [tile],
+    fn col, [last | rest] ->
+      next = cond do
+        has_side?.(last, 2) ->
+          Enum.find(tiles[last], &(row == 0 || &1 != Enum.at(last_row, 0)))
+        has_side?.(last, 3) ->
+          if row == 0 || row == size - 1,
+             do: Enum.find(tiles[last], &(&1 != hd(rest) && !has_side?.(&1, 4))),
+             else: Enum.find(tiles[last], &(has_side?.(&1, 4)))
+        has_side?.(last, 4) ->
+          Enum.find(
+            MapSet.intersection(tiles[last], tiles[Enum.at(last_row, col)]),
+            &(&1 != Enum.at(last_row, col - 1))
+          )
       end
-    )
+      [next, last | rest]
+    end
   )
 
   defp to_grid(input) do
@@ -58,11 +56,11 @@ defmodule AdventOfCode.Day20 do
     has_side? = fn t, n -> Enum.any?(by_links[n], &(&1 == t)) end
     Enum.reduce(
       1..(size - 1),
-      [to_row(hd(by_links[2]), 0, size, has_side?, tiles, [])],
+      [Enum.reverse(to_row(hd(by_links[2]), 0, size, has_side?, tiles, []))],
       fn row, [last_row | rest] ->
         others = if row == 1, do: [], else: [Enum.at(hd(rest), 0)]
         tile = Enum.find(tiles[hd(last_row)], &(!(&1 in [Enum.at(last_row, 1) | others])))
-        [to_row(tile, row, size, has_side?, tiles, last_row), last_row | rest]
+        [Enum.reverse(to_row(tile, row, size, has_side?, tiles, last_row)), last_row | rest]
       end
     )
   end
@@ -89,62 +87,42 @@ defmodule AdventOfCode.Day20 do
 
   defp options(area) when is_list(area), do: [area, Enum.reverse(area)]
 
-  defp match(first, second, map_first, map_second), do: Enum.find_value(
+  defp match({first, map_first}, {second, map_second}), do: Enum.find_value(
     first,
-    fn x -> Enum.find_value(second, &(if map_first.(x) == map_second.(&1), do: {x, &1}, else: nil)) end
+    fn a -> Enum.find_value(second, fn b -> if map_first.(a) == map_second.(b), do: {a, b}, else: nil end) end
   )
 
-  defp match_tile(first, second) do
+  defp match_tile(second, first) do
     right = fn area -> Enum.join(Enum.map(area, &String.last/1)) end
     left = fn area -> Enum.join(Enum.map(area, &String.first/1)) end
-    {a, b} = match(first, second, right, left)
-    Enum.map(0..(length(a) - 1), fn i -> String.slice(Enum.at(a, i), 0..-2) <> String.slice(Enum.at(b, i), 1..-1) end)
+    {a, b} = match({first, right}, {second, left})
+    [Enum.map(Enum.zip(a, b), fn {x, y} -> String.slice(x, 0..-2) <> String.slice(y, 1..-1) end)]
   end
 
-  defp match_row(first, second) do
-    {a, b} = match(first, second, &(Enum.at(&1, -1)), &(hd(&1)))
-    Enum.concat(Enum.drop(a, -1), Enum.drop(b, 1))
+  defp match_row(second, first) do
+    {a, b} = match({first, &(Enum.at(&1, -1))}, {second, &(hd(&1))})
+    [Enum.concat(Enum.drop(a, -1), tl(b))]
   end
 
-  defp combine(list, mapper, combiner), do: Enum.reduce(
-    Enum.with_index(list),
-    nil,
-    fn {x, i}, acc ->
-      result = mapper.(x)
-      case i do
-        0 -> result
-        1 -> combiner.(options(acc), options(result))
-        _ -> combiner.([acc], options(result))
-      end
-    end
-  )
-
-  defp to_sea(input) do
-    sea = combine(to_grid(input), fn row -> combine(row, &(&1), &match_tile/2) end, &match_row/2)
-          |> Enum.slice(1..-2)
-          |> Enum.map(&(String.slice(&1, 1..-2)))
-    {sea, Enum.reduce(sea, 0, &(Enum.count(String.graphemes(&1), fn x -> x == "#" end) + &2))}
+  defp combine(list, mapper, combiner) do
+    [a, b | rest] = Enum.map(list, &(options(mapper.(&1))))
+    hd(Enum.reduce(rest, combiner.(b, a), combiner))
   end
 
-  @shapes %{0 => ~r/^..................#.$/, 1 => ~r/^#....##....##....###$/, 2 => ~r/^.#..#..#..#..#..#...$/}
+  defp to_sea(input), do:
+    combine(to_grid(input), fn row -> combine(row, &(&1), &match_tile/2) end, &match_row/2)
+    |> Enum.slice(1..-2)
+    |> Enum.map(&(String.slice(&1, 1..-2)))
+
+  @shapes [~r/^..................#.$/, ~r/^#....##....##....###$/, ~r/^.#..#..#..#..#..#...$/]
 
   defp count_monsters_in(lines), do: Enum.reduce(
     0..(String.length(hd(lines)) - 20),
     0,
     fn x, acc ->
-      if Enum.all?(@shapes, fn {index, regex} -> Regex.match?(regex, String.slice(Enum.at(lines, index), x, 20)) end),
+      if Enum.all?(Enum.zip(@shapes, lines), &(Regex.match?(elem(&1, 0), String.slice(elem(&1, 1), x, 20)))),
          do: acc + 1,
          else: acc
-    end
-  )
-
-  defp count_monsters(tile), do: Enum.find_value(
-    options(tile),
-    fn sea ->
-      case Enum.reduce(0..(length(sea) - 3), 0, &(count_monsters_in(Enum.slice(sea, &1, 3)) + &2)) do
-        0 -> nil
-        n -> n
-      end
     end
   )
 
@@ -153,6 +131,16 @@ defmodule AdventOfCode.Day20 do
     |> Enum.filter(fn {_, matches} -> Enum.count(matches) == 2 end)
     |> Enum.reduce(1, &(elem(&1, 0).id * &2))
 
-  def part2(input), do:
-    (fn {sea, fills} -> fills - (count_monsters(Tile.new(0, sea)) * 15) end).(to_sea(input))
+  def part2(input) do
+    sea = to_sea(input)
+    Enum.find_value(
+      options(Tile.new(0, sea)),
+      fn x ->
+        case Enum.reduce(0..(length(x) - 3), 0, &(count_monsters_in(Enum.slice(x, &1, 3)) + &2)) do
+          0 -> nil
+          n -> Enum.reduce(sea, 0, &(Enum.count(String.graphemes(&1), fn x -> x == "#" end) + &2)) - n * 15
+        end
+      end
+    )
+  end
 end
