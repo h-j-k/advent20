@@ -89,23 +89,21 @@ defmodule AdventOfCode.Day20 do
 
   defp options(area) when is_list(area), do: [area, Enum.reverse(area)]
 
+  defp match(first, second, map_first, map_second), do: Enum.find_value(
+    first,
+    fn x -> Enum.find_value(second, &(if map_first.(x) == map_second.(&1), do: {x, &1}, else: nil)) end
+  )
+
   defp match_tile(first, second) do
     right = fn area -> Enum.join(Enum.map(area, &String.last/1)) end
     left = fn area -> Enum.join(Enum.map(area, &String.first/1)) end
-    a = if Enum.count(first) == 1,
-           do: hd(first),
-           else: Enum.find(first, fn x -> Enum.any?(second, &(right.(x) == left.(&1))) end)
-    b = Enum.find(second, &(right.(a) == left.(&1)))
+    {a, b} = match(first, second, right, left)
     Enum.map(0..(length(a) - 1), fn i -> String.slice(Enum.at(a, i), 0..-2) <> String.slice(Enum.at(b, i), 1..-1) end)
   end
 
   defp match_row(first, second) do
-    bottom = fn area -> Enum.at(area, -1) end
-    top = fn area -> hd(area) end
-    a = if Enum.count(first) == 1,
-           do: hd(first),
-           else: Enum.find(first, fn x -> Enum.any?(second, &(bottom.(x) == top.(&1))) end)
-    Enum.concat(Enum.drop(a, -1), Enum.drop(Enum.find(second, &(bottom.(a) == top.(&1))), 1))
+    {a, b} = match(first, second, &(Enum.at(&1, -1)), &(hd(&1)))
+    Enum.concat(Enum.drop(a, -1), Enum.drop(b, 1))
   end
 
   defp combine(list, mapper, combiner), do: Enum.reduce(
